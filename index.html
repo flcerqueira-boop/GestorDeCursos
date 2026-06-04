@@ -785,25 +785,58 @@ function renderConfig(){
       <button class="btn btn-primary" onclick="saveConfig()">💾 Salvar</button>
     </div>
     <div class="config-sections">
+
       <div class="config-sec">
         <h2>Informações do Curso</h2>
         <div class="form-grid">
           <div class="field full"><label>Nome do Curso</label><input id="cf-nome" value="${c.nome||''}" placeholder="Ex: Treinamento em Exercícios Terapêuticos — 6ª Edição"/></div>
           <div class="field"><label>Data</label><input id="cf-data" value="${c.data||''}" placeholder="Ex: 29 e 30 de agosto de 2026"/></div>
           <div class="field"><label>Local</label><input id="cf-local" value="${c.local||''}" placeholder="Ex: Aracaju, SE"/></div>
-          <div class="field"><label>Valor (R$)</label><input id="cf-valor" type="number" value="${c.valor||''}" placeholder="0.00"/></div>
           <div class="field"><label>Vagas</label><input id="cf-vagas" type="number" value="${c.vagas||''}" placeholder="0"/></div>
           <div class="field full"><label>Descrição (aparece na página pública)</label><textarea id="cf-desc">${c.descricao||''}</textarea></div>
         </div>
       </div>
+
       <div class="config-sec">
-        <h2>Pagamento</h2>
+        <h2>PIX</h2>
         <div class="form-grid">
           <div class="field full"><label>Chave PIX</label><input id="cf-pix" value="${c.chavePix||''}" placeholder="CPF, CNPJ, email ou chave aleatória"/></div>
           <div class="field full"><label>Nome do titular (PIX)</label><input id="cf-pixnome" value="${c.nomePix||''}" placeholder="Felipe Cerqueira"/></div>
-          <div class="field full"><label>Link para pagamento no cartão</label><input id="cf-cartao" value="${c.linkCartao||''}" placeholder="https://hotmart.com/product/..."/></div>
         </div>
       </div>
+
+      <div class="config-sec">
+        <h2>Valores — Tabela Normal</h2>
+        <div class="form-grid">
+          <div class="field"><label>À vista PIX (R$)</label><input id="cf-v-avista" type="number" value="${c.vAvista||''}" placeholder="400"/></div>
+          <div class="field"><label>3x no PIX (R$ total)</label><input id="cf-v-pix3x" type="number" value="${c.vPix3x||''}" placeholder="400"/></div>
+          <div class="field"><label>PIX 3x — Parcela 1 (R$)</label><input id="cf-pix-p1" type="number" value="${c.pixP1||''}" placeholder="150"/></div>
+          <div class="field"><label>PIX 3x — Parcela 2 (R$)</label><input id="cf-pix-p2" type="number" value="${c.pixP2||''}" placeholder="150"/></div>
+          <div class="field"><label>PIX 3x — Parcela 3 (R$)</label><input id="cf-pix-p3" type="number" value="${c.pixP3||''}" placeholder="100"/></div>
+          <div class="field"><label>Cartão (até 10x) — R$ total</label><input id="cf-v-cartao" type="number" value="${c.vCartao||''}" placeholder="450"/></div>
+          <div class="field full"><label>Link cartão normal</label><input id="cf-link-cartao" value="${c.linkCartao||''}" placeholder="https://hotmart.com/..."/></div>
+        </div>
+      </div>
+
+      <div class="config-sec">
+        <h2>Valores — Plano Fidelidade (5% desconto)</h2>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:16px">Para assinantes OrtoFlix ou alunos de turmas 2025/2026</p>
+        <div class="form-grid">
+          <div class="field"><label>À vista PIX fidelidade (R$)</label><input id="cf-f-avista" type="number" value="${c.fAvista||''}" placeholder="380"/></div>
+          <div class="field"><label>3x no PIX fidelidade (R$ total)</label><input id="cf-f-pix3x" type="number" value="${c.fPix3x||''}" placeholder="380"/></div>
+          <div class="field"><label>Cartão fidelidade (até 10x) — R$ total</label><input id="cf-f-cartao" type="number" value="${c.fCartao||''}" placeholder="430"/></div>
+          <div class="field full"><label>Link cartão fidelidade</label><input id="cf-link-cartao-f" value="${c.linkCartaoFid||''}" placeholder="https://hotmart.com/..."/></div>
+        </div>
+      </div>
+
+      <div class="config-sec">
+        <h2>Textos de Regras (aparecem na inscrição)</h2>
+        <div class="form-grid">
+          <div class="field full"><label>Regras do parcelamento no PIX</label><textarea id="cf-regras-pix" rows="5" placeholder="Ex: A primeira parcela deve ser de R$150...">${c.regrasPix||'- A primeira parcela deve ser de R$150, paga no momento da inscrição.\n- A segunda parcela deve ser de R$150, paga OBRIGATORIAMENTE até 05/07.\n- A terceira parcela deve ser de R$100, paga OBRIGATORIAMENTE até 05/08.\n- A confirmação fica condicionada ao pagamento da primeira parcela.\n- O não pagamento no prazo caracteriza abandono da inscrição.'}</textarea></div>
+          <div class="field full"><label>Política de cancelamento</label><textarea id="cf-regras-cancel" rows="4" placeholder="Ex: Em caso de desistência até 7 dias...">${c.regrasCancel||'- Em caso de desistência até 7 dias após o pagamento, o valor será reembolsado integralmente, desde que solicitado até 48 horas antes do início do curso.\n- Desistências após este período não serão reembolsadas.'}</textarea></div>
+        </div>
+      </div>
+
       <div class="config-sec">
         <h2>Link de Inscrição Pública</h2>
         <div class="link-card">
@@ -814,21 +847,36 @@ function renderConfig(){
           </div>
         </div>
       </div>
+
     </div>
   </div>`;
 }
 
 async function saveConfig(){
   const data = {
-    nome: document.getElementById('cf-nome').value.trim(),
-    data: document.getElementById('cf-data').value.trim(),
-    local: document.getElementById('cf-local').value.trim(),
-    valor: parseFloat(document.getElementById('cf-valor').value)||0,
-    vagas: parseInt(document.getElementById('cf-vagas').value)||0,
-    descricao: document.getElementById('cf-desc').value.trim(),
-    chavePix: document.getElementById('cf-pix').value.trim(),
-    nomePix: document.getElementById('cf-pixnome').value.trim(),
-    linkCartao: document.getElementById('cf-cartao').value.trim(),
+    nome:          document.getElementById('cf-nome').value.trim(),
+    data:          document.getElementById('cf-data').value.trim(),
+    local:         document.getElementById('cf-local').value.trim(),
+    vagas:         parseInt(document.getElementById('cf-vagas').value)||0,
+    descricao:     document.getElementById('cf-desc').value.trim(),
+    chavePix:      document.getElementById('cf-pix').value.trim(),
+    nomePix:       document.getElementById('cf-pixnome').value.trim(),
+    // valores normais
+    vAvista:       parseFloat(document.getElementById('cf-v-avista').value)||0,
+    vPix3x:        parseFloat(document.getElementById('cf-v-pix3x').value)||0,
+    pixP1:         parseFloat(document.getElementById('cf-pix-p1').value)||0,
+    pixP2:         parseFloat(document.getElementById('cf-pix-p2').value)||0,
+    pixP3:         parseFloat(document.getElementById('cf-pix-p3').value)||0,
+    vCartao:       parseFloat(document.getElementById('cf-v-cartao').value)||0,
+    linkCartao:    document.getElementById('cf-link-cartao').value.trim(),
+    // valores fidelidade
+    fAvista:       parseFloat(document.getElementById('cf-f-avista').value)||0,
+    fPix3x:        parseFloat(document.getElementById('cf-f-pix3x').value)||0,
+    fCartao:       parseFloat(document.getElementById('cf-f-cartao').value)||0,
+    linkCartaoFid: document.getElementById('cf-link-cartao-f').value.trim(),
+    // regras
+    regrasPix:     document.getElementById('cf-regras-pix').value.trim(),
+    regrasCancel:  document.getElementById('cf-regras-cancel').value.trim(),
   };
   await db.collection('config').doc('curso').set(data);
   toast('Configurações salvas!');
@@ -838,24 +886,35 @@ async function saveConfig(){
 //  PÁGINA PÚBLICA DE INSCRIÇÃO
 // ══════════════════════════════════════════════════════
 let pubCurso = null;
-let pubFormaPag = 'PIX';
-let pubStep = 'form'; // form | confirmacao
+let pubPgto = 'avista';       // avista | pix3x | cartao
+let pubFidelidade = 'nao';    // nao | sim
 let pubNome = '';
+let pubAceitePix = false;
+let pubAceiteCancel = false;
 
 function showPublicPage(){
-  hide('loading-screen');
-  hide('app');
-  hide('login-page');
+  hide('loading-screen'); hide('app'); hide('login-page');
   show('public-page');
-  // Carrega config do curso
   db.collection('config').doc('curso').get().then(snap=>{
     pubCurso = snap.exists ? snap.data() : null;
     renderPublicForm();
   });
 }
 
+function getValor(){
+  const c = pubCurso||{};
+  const fid = pubFidelidade === 'sim';
+  if(pubPgto === 'avista')  return fmtBRL(fid ? c.fAvista  : c.vAvista);
+  if(pubPgto === 'pix3x')   return fmtBRL(fid ? c.fPix3x   : c.vPix3x);
+  if(pubPgto === 'cartao')  return fmtBRL(fid ? c.fCartao  : c.vCartao);
+  return '';
+}
+
 function renderPublicForm(){
   const c = pubCurso||{};
+  const regrasPix    = (c.regrasPix||'').split('\n').filter(Boolean);
+  const regrasCancel = (c.regrasCancel||'').split('\n').filter(Boolean);
+
   document.getElementById('public-page').innerHTML = `
   <div class="pub-card fade-in">
     <div class="pub-hdr">
@@ -865,11 +924,32 @@ function renderPublicForm(){
       <div class="pub-meta">
         ${c.data?`<span>📅 ${c.data}</span>`:''}
         ${c.local?`<span>📍 ${c.local}</span>`:''}
-        ${c.valor?`<span>💰 ${fmtBRL(c.valor)}</span>`:''}
       </div>
     </div>
+
     <div class="pub-form">
-      <h2>Formulário de Inscrição</h2>
+      <h2>Tabela de Valores</h2>
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:20px;font-size:14px">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center">
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px">
+            <div style="font-size:11px;color:var(--text2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em">À vista (PIX)</div>
+            <div style="font-weight:700;font-family:'Syne',sans-serif;color:var(--green)">${fmtBRL(c.vAvista)}</div>
+          </div>
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px">
+            <div style="font-size:11px;color:var(--text2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em">3x no PIX</div>
+            <div style="font-weight:700;font-family:'Syne',sans-serif;color:var(--blue)">${fmtBRL(c.vPix3x)}</div>
+          </div>
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px">
+            <div style="font-size:11px;color:var(--text2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em">Cartão 10x</div>
+            <div style="font-weight:700;font-family:'Syne',sans-serif;color:var(--accent)">${fmtBRL(c.vCartao)}</div>
+          </div>
+        </div>
+        <div style="margin-top:10px;padding:10px;background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.2);border-radius:8px;font-size:13px;color:var(--purple)">
+          🤝 <strong>Plano Fidelidade (5% off):</strong> À vista/3x PIX ${fmtBRL(c.fAvista)} · Cartão 10x ${fmtBRL(c.fCartao)}
+        </div>
+      </div>
+
+      <h2 style="margin-bottom:16px">Formulário de Inscrição</h2>
       <div class="form-grid">
         <div class="field full"><label>Nome completo *</label><input id="pf-nome" placeholder="Seu nome completo"/></div>
         <div class="field"><label>Email *</label><input id="pf-email" type="email" placeholder="seu@email.com"/></div>
@@ -882,24 +962,68 @@ function renderPublicForm(){
           </select>
         </div>
         <div class="field"><label>Faculdade</label><input id="pf-fac" placeholder="Nome da sua faculdade"/></div>
-        <div class="field full"><label>Forma de pagamento</label>
+
+        <div class="field full">
+          <label>Plano Fidelidade</label>
+          <div class="radio-group" id="radio-fid">
+            <label class="radio-opt selected" onclick="selectFid(this,'nao')"><input type="radio" name="fid" style="display:none" checked> Não se aplica</label>
+            <label class="radio-opt" onclick="selectFid(this,'sim')"><input type="radio" name="fid" style="display:none"> 🤝 Sou assinante OrtoFlix ou fiz curso em 2025/2026</label>
+          </div>
+        </div>
+
+        <div class="field full">
+          <label>Forma de pagamento</label>
           <div class="radio-group" id="radio-pgto">
-            ${['PIX','Cartão de Crédito','Cartão de Débito'].map(op=>`
-            <label class="radio-opt${op==='PIX'?' selected':''}" onclick="selectPgto(this,'${op}')">
-              <input type="radio" name="pgto" value="${op}" ${op==='PIX'?'checked':''} style="display:none"> ${op}
-            </label>`).join('')}
+            <label class="radio-opt selected" onclick="selectPgto(this,'avista')"><input type="radio" name="pgto" style="display:none" checked> PIX à vista</label>
+            <label class="radio-opt" onclick="selectPgto(this,'pix3x')"><input type="radio" name="pgto" style="display:none"> 3x no PIX</label>
+            <label class="radio-opt" onclick="selectPgto(this,'cartao')"><input type="radio" name="pgto" style="display:none"> Cartão (até 10x)</label>
+          </div>
+          <div id="valor-preview" style="margin-top:10px;padding:10px 14px;background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.2);border-radius:8px;font-size:14px;font-weight:600;color:var(--accent)">
+            💰 Valor: ${getValor()}
           </div>
         </div>
       </div>
+
+      <div id="bloco-pix3x" style="display:none;margin:16px 0;background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.2);border-radius:10px;padding:16px">
+        <p style="font-weight:700;font-size:14px;margin-bottom:10px">⚠️ Regras do parcelamento no PIX</p>
+        ${regrasPix.map(r=>`<p style="font-size:13px;color:var(--text2);margin-bottom:4px">${r}</p>`).join('')}
+        <label style="display:flex;align-items:center;gap:8px;margin-top:12px;cursor:pointer;font-size:13px">
+          <input type="checkbox" id="aceite-pix" onchange="pubAceitePix=this.checked" style="accent-color:var(--accent);width:16px;height:16px">
+          Estou ciente e aceito as condições do parcelamento no PIX.
+        </label>
+      </div>
+
+      <div style="margin:16px 0;background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);border-radius:10px;padding:16px">
+        <p style="font-weight:700;font-size:14px;margin-bottom:10px">📋 Política de Cancelamento</p>
+        ${regrasCancel.map(r=>`<p style="font-size:13px;color:var(--text2);margin-bottom:4px">${r}</p>`).join('')}
+        <label style="display:flex;align-items:center;gap:8px;margin-top:12px;cursor:pointer;font-size:13px">
+          <input type="checkbox" id="aceite-cancel" onchange="pubAceiteCancel=this.checked" style="accent-color:var(--accent);width:16px;height:16px">
+          Estou ciente e aceito a política de cancelamento.
+        </label>
+      </div>
+
+      <div style="background:var(--bg3);border-radius:8px;padding:12px 14px;font-size:13px;color:var(--text2);margin-bottom:16px">
+        ⚠️ A inscrição só terá validade mediante pagamento em até <strong>48 horas</strong>. Após este período a vaga será liberada.
+      </div>
+
       <button class="btn btn-primary btn-full" id="pub-submit-btn" onclick="submitInscricao()">Confirmar Inscrição</button>
     </div>
   </div>`;
 }
 
 function selectPgto(el, val){
-  pubFormaPag = val;
-  document.querySelectorAll('.radio-opt').forEach(r=>r.classList.remove('selected'));
+  pubPgto = val;
+  document.querySelectorAll('#radio-pgto .radio-opt').forEach(r=>r.classList.remove('selected'));
   el.classList.add('selected');
+  document.getElementById('bloco-pix3x').style.display = val==='pix3x' ? 'block' : 'none';
+  document.getElementById('valor-preview').innerHTML = `💰 Valor: ${getValor()}`;
+}
+
+function selectFid(el, val){
+  pubFidelidade = val;
+  document.querySelectorAll('#radio-fid .radio-opt').forEach(r=>r.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('valor-preview').innerHTML = `💰 Valor: ${getValor()}`;
 }
 
 async function submitInscricao(){
@@ -908,15 +1032,26 @@ async function submitInscricao(){
   const tel   = document.getElementById('pf-tel').value.trim();
   if(!nome||!email||!tel){ toast('Preencha nome, email e telefone','err'); return; }
   if(!/\S+@\S+\.\S+/.test(email)){ toast('Email inválido','err'); return; }
+  if(pubPgto==='pix3x' && !pubAceitePix){ toast('Aceite as regras do parcelamento no PIX','err'); return; }
+  if(!pubAceiteCancel){ toast('Aceite a política de cancelamento','err'); return; }
   const btn = document.getElementById('pub-submit-btn');
-  btn.textContent = 'Enviando...'; btn.disabled = true;
+  btn.textContent='Enviando...'; btn.disabled=true;
+  const c = pubCurso||{};
+  const fid = pubFidelidade==='sim';
+  let valorFinal = 0;
+  if(pubPgto==='avista') valorFinal = fid ? c.fAvista : c.vAvista;
+  if(pubPgto==='pix3x')  valorFinal = fid ? c.fPix3x  : c.vPix3x;
+  if(pubPgto==='cartao') valorFinal = fid ? c.fCartao : c.vCartao;
+  const pgtoLabel = {avista:'PIX à vista', pix3x:'3x no PIX', cartao:'Cartão (até 10x)'}[pubPgto];
   try{
     await db.collection('inscricoes').add({
       nome, email, telefone:tel,
-      instagram: document.getElementById('pf-insta').value.trim(),
-      perfil: document.getElementById('pf-perfil').value,
-      faculdade: document.getElementById('pf-fac').value.trim(),
-      formaPagamento: pubFormaPag,
+      instagram:    document.getElementById('pf-insta').value.trim(),
+      perfil:       document.getElementById('pf-perfil').value,
+      faculdade:    document.getElementById('pf-fac').value.trim(),
+      formaPagamento: pgtoLabel,
+      fidelidade:   pubFidelidade,
+      valorFinal,
       status: 'pendente',
       criadoEm: firebase.firestore.FieldValue.serverTimestamp()
     });
@@ -924,35 +1059,50 @@ async function submitInscricao(){
     renderPublicConfirm();
   } catch(e){
     toast('Erro ao enviar. Tente novamente.','err');
-    btn.textContent = 'Confirmar Inscrição'; btn.disabled = false;
+    btn.textContent='Confirmar Inscrição'; btn.disabled=false;
   }
 }
 
 function renderPublicConfirm(){
   const c = pubCurso||{};
-  const isPix = pubFormaPag === 'PIX';
+  const fid = pubFidelidade==='sim';
+  const isCartao = pubPgto==='cartao';
+  const isPix3x  = pubPgto==='pix3x';
+  const linkCartao = fid ? c.linkCartaoFid : c.linkCartao;
+  let valorLabel = getValor();
+  const regrasPix = (c.regrasPix||'').split('\n').filter(Boolean);
+
   document.getElementById('public-page').innerHTML = `
   <div class="confirm-card fade-in">
     <div class="confirm-ico">✅</div>
     <h1>Inscrição Recebida!</h1>
     <p class="sub">Olá, <strong>${pubNome}</strong>! Sua inscrição em <strong>${c.nome||'nosso curso'}</strong> foi registrada.</p>
-    <p class="sub" style="margin-top:12px;font-weight:600;color:var(--text)">Finalize o pagamento para confirmar sua vaga:</p>
+    <p class="sub" style="margin-top:10px;font-weight:600;color:var(--text)">Finalize o pagamento para confirmar sua vaga:</p>
+    ${fid?`<p style="font-size:13px;color:var(--purple);margin-top:4px">🤝 Plano Fidelidade aplicado</p>`:''}
 
-    ${isPix ? `
-    <div class="pix-box">
+    ${!isCartao ? `
+    <div class="pix-box" style="margin-top:16px">
       <div class="pix-box-hdr"><span style="background:var(--green);color:#fff;font-size:10px;padding:2px 7px;border-radius:4px;font-weight:800">PIX</span> Pagamento via PIX</div>
       <p class="pix-lbl">Chave PIX:</p>
       <div class="pix-key-row">
-        <code>${c.chavePix||'Chave não configurada'}</code>
-        <button class="ico-btn" onclick="copyText('${c.chavePix||''}')">📋</button>
+        <code>${c.chavePix||'Não configurada'}</code>
+        <button class="ico-btn" onclick="navigator.clipboard.writeText('${c.chavePix||''}').then(()=>toast('Copiado!'))">📋</button>
       </div>
-      ${c.nomePix?`<p style="font-size:13px;color:var(--text2)">Titular: <strong>${c.nomePix}</strong></p>`:''}
-      ${c.valor?`<p style="font-size:13px;color:var(--text2)">Valor: <strong>${fmtBRL(c.valor)}</strong></p>`:''}
-      <p class="pix-obs">Após o pagamento, envie o comprovante via WhatsApp para confirmação.</p>
+      ${c.nomePix?`<p style="font-size:13px;color:var(--text2);margin-top:4px">Titular: <strong>${c.nomePix}</strong></p>`:''}
+      <p style="font-size:14px;font-weight:700;color:var(--green);margin-top:8px">Valor: ${valorLabel}</p>
+      ${isPix3x ? `
+      <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(16,185,129,.2)">
+        <p style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:6px">PARCELAS:</p>
+        ${c.pixP1?`<p style="font-size:13px">• 1ª parcela: <strong>${fmtBRL(fid?c.pixP1*(c.fPix3x/c.vPix3x):c.pixP1)}</strong> — no ato da inscrição</p>`:''}
+        ${c.pixP2?`<p style="font-size:13px">• 2ª parcela: <strong>${fmtBRL(fid?c.pixP2*(c.fPix3x/c.vPix3x):c.pixP2)}</strong></p>`:''}
+        ${c.pixP3?`<p style="font-size:13px">• 3ª parcela: <strong>${fmtBRL(fid?c.pixP3*(c.fPix3x/c.vPix3x):c.pixP3)}</strong></p>`:''}
+      </div>` : ''}
+      <p class="pix-obs">Após o pagamento, envie o comprovante por e-mail ou Instagram (@fccursos).</p>
     </div>` : `
-    <div class="cartao-box">
-      <div class="cartao-box-hdr">💳 Pagamento via Cartão</div>
-      ${c.linkCartao ? `<a href="${c.linkCartao}" target="_blank" class="btn btn-primary btn-full" style="margin-top:0">Clique aqui para pagar no cartão</a>` : '<p style="color:var(--text2);font-size:14px">Entre em contato para realizar o pagamento.</p>'}
+    <div class="cartao-box" style="margin-top:16px">
+      <div class="cartao-box-hdr">💳 Pagamento via Cartão — até 10x</div>
+      <p style="font-size:14px;font-weight:700;color:var(--blue);margin-bottom:12px">Valor: ${valorLabel}</p>
+      ${linkCartao ? `<a href="${linkCartao}" target="_blank" class="btn btn-primary btn-full" style="margin-top:0">Clique aqui para pagar no cartão</a>` : '<p style="color:var(--text2);font-size:14px">Entre em contato para realizar o pagamento.</p>'}
     </div>`}
 
     ${(c.data||c.local)?`
