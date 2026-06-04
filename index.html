@@ -382,8 +382,12 @@ function startListeners(){
     if(currentPage === 'dashboard') renderDashboard();
     if(currentPage === 'config') renderConfig();
   });
-  unsubInsc = db.collection('inscricoes').orderBy('criadoEm','desc').onSnapshot(snap => {
-    inscricoes = snap.docs.map(d=>({id:d.id,...d.data()}));
+  unsubInsc = db.collection('inscricoes').onSnapshot(snap => {
+    inscricoes = snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>{
+      const ta = a.criadoEm?.seconds||0;
+      const tb = b.criadoEm?.seconds||0;
+      return tb - ta;
+    });
     if(currentPage === 'inscricoes') renderInscricoes();
     if(currentPage === 'dashboard') renderDashboard();
   });
@@ -878,7 +882,7 @@ async function saveConfig(){
     regrasPix:     document.getElementById('cf-regras-pix').value.trim(),
     regrasCancel:  document.getElementById('cf-regras-cancel').value.trim(),
   };
-  await db.collection('config').doc('curso').set(data);
+  await db.collection('config').doc('curso').set(data, { merge: true });
   toast('Configurações salvas!');
 }
 
