@@ -466,7 +466,7 @@ let inscFiltroStatus = 'todos';
 let inscBusca = '';
 
 function renderInscricoes(){
-  const publicLink = `${location.origin}/GestorDeCurso/#/inscricao`;
+  const publicLink = `${location.origin}/GestorDeCursos/#/inscricao`;
   const filtradas = inscricoes.filter(i=>{
     const mb = !inscBusca || (i.nome||'').toLowerCase().includes(inscBusca.toLowerCase()) || (i.email||'').toLowerCase().includes(inscBusca.toLowerCase()) || (i.telefone||'').includes(inscBusca);
     const ms = inscFiltroStatus==='todos' || i.status===inscFiltroStatus;
@@ -777,7 +777,7 @@ async function deleteMat(id){
 // ══════════════════════════════════════════════════════
 function renderConfig(){
   const c = curso||{};
-  const publicLink = `${location.origin}/GestorDeCurso/#/inscricao`;
+  const publicLink = `${location.origin}/GestorDeCursos/#/inscricao`;
   document.getElementById('main-content').innerHTML = `
   <div class="page fade-in">
     <div class="page-hdr">
