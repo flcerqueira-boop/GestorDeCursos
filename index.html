@@ -32,7 +32,7 @@ a{text-decoration:none}
 .spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%}
 
 /* LOGIN */
-#login-page{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(ellipse at 20% 50%,rgba(249,115,22,.07) 0%,transparent 55%)}
+#login-page{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(ellipse at 20% 50%,rgba(249,115,22,.07) 0%,transparent 55%),var(--bg);z-index:100}
 .login-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:40px;width:100%;max-width:380px;box-shadow:0 8px 40px rgba(0,0,0,.5)}
 .login-brand{text-align:center;margin-bottom:32px}
 .login-brand .logo-icon{font-size:40px;margin-bottom:12px;display:block}
@@ -242,14 +242,63 @@ select option{background:var(--bg3)}
 
 /* RESPONSIVE */
 @media(max-width:700px){
-  #app{flex-direction:column}
-  .sidebar{width:100%;height:auto}
-  .sb-nav{flex-direction:row;overflow-x:auto;padding:8px}
-  .nav-btn span{display:none}
-  .nav-btn{justify-content:center;padding:10px}
-  .page{padding:16px}
+  /* Layout */
+  #app{flex-direction:column;height:100vh}
+  .sidebar{width:100%;height:auto;flex-shrink:0;border-right:none;border-bottom:1px solid var(--border)}
+  .sb-brand{display:none}
+  .sb-foot{display:none}
+  .sb-nav{flex-direction:row;overflow-x:auto;padding:0;gap:0;border-top:none}
+  .nav-btn{flex-direction:column;gap:3px;padding:10px 6px;border-radius:0;flex:1;justify-content:center;min-width:52px;font-size:10px}
+  .nav-btn .ico{font-size:20px;width:auto}
+  .nav-btn span{display:block;font-size:10px;line-height:1}
+  .nav-btn.active{background:rgba(249,115,22,.12);border-bottom:2px solid var(--accent)}
+  .nav-badge{position:absolute;top:6px;right:6px;padding:1px 5px}
+  .nav-btn{position:relative}
+  .main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+
+  /* Content */
+  .page{padding:14px}
+  .page-hdr{margin-bottom:16px}
+  .page-hdr h1{font-size:20px}
+  .hdr-actions{gap:6px}
+  .hdr-actions .btn{padding:8px 10px;font-size:13px}
+
+  /* Stats */
+  .stats-grid{grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+  .stat{padding:14px 12px;gap:10px}
+  .stat-val{font-size:17px}
+  .stat-ico{width:36px;height:36px;font-size:16px}
+
+  /* Form */
   .form-grid{grid-template-columns:1fr}
-  .stats-grid{grid-template-columns:1fr 1fr}
+  .field.full{grid-column:1}
+
+  /* Table — scroll horizontal */
+  .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table{min-width:600px}
+
+  /* Modal */
+  .overlay{padding:12px;align-items:flex-end}
+  .modal{border-radius:14px 14px 0 0;max-height:85vh;padding:20px}
+
+  /* Balance */
+  .balance,.total-tag{font-size:13px;padding:6px 12px}
+
+  /* Gastos grid */
+  .gastos-grid{grid-template-columns:1fr}
+  .mat-grid{grid-template-columns:1fr}
+
+  /* Login */
+  .login-card{padding:28px 20px}
+
+  /* Config */
+  .config-sec{padding:16px}
+
+  /* Toast */
+  .toast{bottom:80px;right:12px;left:12px;max-width:none;text-align:center}
+
+  /* Link card */
+  .link-card{flex-direction:column;gap:12px}
 }
 </style>
 </head>
