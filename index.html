@@ -359,8 +359,9 @@ function statusClass(s){ return {pago_pix:'b-green',pago_cartao:'b-blue',pendent
 // ══════════════════════════
 // PUBLIC ROUTE DETECTION
 // ══════════════════════════
-const isPublic = window.location.hash.startsWith('#/inscricao');
-const isAvisar = window.location.hash.startsWith('#/avisar/');
+const hashNow = window.location.hash;
+const isPublic = hashNow.startsWith('#/inscricao');
+const isAvisar = hashNow.startsWith('#/avisar/');
 
 // ══════════════════════════
 // AUTH
@@ -452,8 +453,12 @@ function renderDashboard(){
   const pend    = inscricoes.filter(i=>i.status==='pendente');
   const aguard  = inscricoes.filter(i=>i.status==='aguard_confirm');
   const totalG  = gastos.reduce((s,g)=>s+(g.valor||0),0);
-  const receita = inscricoes.reduce((s,i)=>s+(i.valorPago||0),0);
-  const saldo   = receita - totalG;
+  const receitaBruta  = inscricoes.reduce((s,i)=>s+(i.valorPago||0),0);
+  const receitaLiq    = inscricoes.reduce((s,i)=>{
+    const isCartao = (i.formaPagamento||'').includes('Cartão');
+    return s + (isCartao ? (i.valorLiquido||0) : (i.valorPago||0));
+  },0);
+  const saldo   = receitaLiq - totalG;
   const naoLidas = notificacoes.filter(n=>!n.lida).length;
 
   document.getElementById('main-content').innerHTML = `
@@ -476,7 +481,8 @@ function renderDashboard(){
       <div class="stat c-green"><div class="stat-ico">✅</div><div><span class="stat-val">${pagos.length}</span><span class="stat-lbl">Confirmados</span></div></div>
       <div class="stat c-orange"><div class="stat-ico">⏳</div><div><span class="stat-val">${aguard.length}</span><span class="stat-lbl">Aguard. Confirmação</span></div></div>
       <div class="stat c-yellow"><div class="stat-ico">🕐</div><div><span class="stat-val">${pend.length}</span><span class="stat-lbl">Pendentes</span></div></div>
-      <div class="stat c-teal"><div class="stat-ico">📈</div><div><span class="stat-val">${fmtBRL(receita)}</span><span class="stat-lbl">Receita Confirmada</span></div></div>
+      <div class="stat c-teal"><div class="stat-ico">📈</div><div><span class="stat-val">${fmtBRL(receitaBruta)}</span><span class="stat-lbl">Receita Bruta</span></div></div>
+      <div class="stat c-blue"><div class="stat-ico">💳</div><div><span class="stat-val">${fmtBRL(receitaLiq)}</span><span class="stat-lbl">Receita Líquida</span></div></div>
       <div class="stat c-red"><div class="stat-ico">💸</div><div><span class="stat-val">${fmtBRL(totalG)}</span><span class="stat-lbl">Total Gastos</span></div></div>
     </div>
 
@@ -574,6 +580,8 @@ function renderInscricoes(){
     <div class="page-hdr">
       <div><h1>Inscrições</h1><p>${inscricoes.length} inscrito(s)</p></div>
       <div class="hdr-actions">
+        <button class="btn btn-outline" onclick="exportarExcel()">📊 Excel</button>
+        <button class="btn btn-outline" onclick="exportarPDF()">📄 PDF</button>
         <button class="btn btn-outline" onclick="toggleLinkCard()">🔗 Link Público</button>
         <button class="btn btn-primary" onclick="openAddInsc()">➕ Adicionar</button>
       </div>
@@ -603,38 +611,231 @@ function renderInscricoes(){
     </div>
 
     <div class="tbl-wrap"><table>
-      <thead><tr><th>Nome</th><th>Contato</th><th>Pagamento</th><th>Fidelidade</th><th>Valor</th><th>Status</th><th></th></tr></thead>
+      <thead><tr><th>Nome</th><th>Contato</th><th>Pagamento</th><th>Fidelidade</th><th>Bruto</th><th>Líquido</th><th>Pago</th><th>Falta</th><th>Status</th><th></th></tr></thead>
       <tbody>
-        ${filtradas.length===0?`<tr><td colspan="7" class="empty-row">Nenhuma inscrição encontrada</td></tr>`:
-          filtradas.map(i=>`
-          <tr>
-            <td><strong>${i.nome||''}</strong><br><span style="font-size:11px;color:var(--text2)">${i.faculdade||''}</span></td>
-            <td style="font-size:12px">${i.telefone||''}<br><span style="color:var(--text2)">${i.email||''}</span></td>
-            <td>${i.formaPagamento||'-'}</td>
-            <td><span class="badge ${i.fidelidade==='sim'?'b-purple':'b-teal'}">${i.fidelidade==='sim'?'🤝 Fidelidade':'Normal'}</span></td>
-            <td style="font-weight:700;font-family:'Syne',sans-serif">${fmtBRL(i.valorFinal)}</td>
-            <td>
-              <select class="sts-sel sts-${i.status}" onchange="updateStatus('${i.id}',this.value,this)">
-                <option value="pendente" ${i.status==='pendente'?'selected':''}>Pendente</option>
-                <option value="aguard_confirm" ${i.status==='aguard_confirm'?'selected':''}>Aguard. Confirm.</option>
-                <option value="pago_pix" ${i.status==='pago_pix'?'selected':''}>Pago PIX</option>
-                <option value="pago_cartao" ${i.status==='pago_cartao'?'selected':''}>Pago Cartão</option>
-                <option value="cortesia" ${i.status==='cortesia'?'selected':''}>Cortesia</option>
-                <option value="cancelado" ${i.status==='cancelado'?'selected':''}>Cancelado</option>
-              </select>
-            </td>
-            <td><div style="display:flex;gap:5px">
-              <button class="ico-btn edit" onclick="openEditInsc('${i.id}')" title="Editar">✏️</button>
-              <button class="ico-btn" onclick="deleteInsc('${i.id}')" title="Remover">🗑️</button>
-            </div></td>
-          </tr>`).join('')}
+        ${filtradas.length===0?`<tr><td colspan="10" class="empty-row">Nenhuma inscrição encontrada</td></tr>`:
+          filtradas.map(i=>{
+            const valorTotal = i.valorFinal||0;
+            const valorPago  = i.valorPago||0;
+            const valorLiq   = i.valorLiquido!==undefined ? i.valorLiquido : '';
+            const falta      = Math.max(0, valorTotal - valorPago);
+            const isPix3x    = (i.formaPagamento||'').includes('3x');
+            const isCartao   = (i.formaPagamento||'').includes('Cartão');
+            return `
+            <tr>
+              <td><strong>${i.nome||''}</strong><br><span style="font-size:11px;color:var(--text2)">${i.faculdade||''}</span></td>
+              <td style="font-size:12px">${i.telefone||''}<br><span style="color:var(--text2)">${i.email||''}</span></td>
+              <td>${i.formaPagamento||'-'}</td>
+              <td><span class="badge ${i.fidelidade==='sim'?'b-purple':'b-teal'}">${i.fidelidade==='sim'?'🤝':'Normal'}</span></td>
+              <td style="font-weight:700;font-family:'Syne',sans-serif">${fmtBRL(valorTotal)}</td>
+              <td>${isCartao?`<input type="number" value="${valorLiq}" placeholder="0,00" title="Valor recebido após taxas" onchange="salvarLiquido('${i.id}',this.value)" style="width:88px;background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.3);color:var(--blue);padding:5px 8px;border-radius:6px;font-size:13px;font-weight:600;outline:none"/>`:`<span style="color:var(--text2);font-size:12px">—</span>`}</td>
+              <td style="color:var(--green);font-weight:600">${fmtBRL(valorPago)}</td>
+              <td>${falta>0?`<span style="color:var(--yellow);font-weight:600">${fmtBRL(falta)}</span>`:`<span style="color:var(--green)">✅</span>`}</td>
+              <td>
+                <select class="sts-sel sts-${i.status}" onchange="updateStatus('${i.id}',this.value,this)">
+                  <option value="pendente" ${i.status==='pendente'?'selected':''}>Pendente</option>
+                  <option value="aguard_confirm" ${i.status==='aguard_confirm'?'selected':''}>Aguard. Confirm.</option>
+                  <option value="pago_pix" ${i.status==='pago_pix'?'selected':''}>Pago PIX</option>
+                  <option value="pago_cartao" ${i.status==='pago_cartao'?'selected':''}>Pago Cartão</option>
+                  <option value="cortesia" ${i.status==='cortesia'?'selected':''}>Cortesia</option>
+                  <option value="cancelado" ${i.status==='cancelado'?'selected':''}>Cancelado</option>
+                </select>
+              </td>
+              <td><div style="display:flex;gap:5px">
+                ${isPix3x?`<button class="ico-btn confirm" onclick="openParcelas('${i.id}')" title="Parcelas">💰</button>`:''}
+                <button class="ico-btn edit" onclick="openEditInsc('${i.id}')" title="Editar">✏️</button>
+                <button class="ico-btn" onclick="deleteInsc('${i.id}')" title="Remover">🗑️</button>
+              </div></td>
+            </tr>`;
+          }).join('')}
       </tbody>
     </table></div>
   </div>`;
 }
 
+// ── PARCELAS PIX ──
+async function openParcelas(id){
+  const insc = inscricoes.find(i=>i.id===id);
+  if(!insc) return;
+  const valorTotal = insc.valorFinal||0;
+  const valorPago  = insc.valorPago||0;
+  const falta = Math.max(0, valorTotal - valorPago);
+  const pagamentos = insc.pagamentos||[];
+
+  document.body.insertAdjacentHTML('beforeend',`
+  <div class="overlay" id="parc-modal" onclick="closeIfOverlay(event,'parc-modal')">
+    <div class="modal">
+      <h2>💰 Parcelas — ${insc.nome}</h2>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px;text-align:center">
+        <div style="background:var(--bg3);border-radius:8px;padding:12px">
+          <div style="font-size:11px;color:var(--text2);margin-bottom:4px">TOTAL</div>
+          <div style="font-weight:700;font-family:'Syne',sans-serif">${fmtBRL(valorTotal)}</div>
+        </div>
+        <div style="background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:8px;padding:12px">
+          <div style="font-size:11px;color:var(--text2);margin-bottom:4px">PAGO</div>
+          <div style="font-weight:700;font-family:'Syne',sans-serif;color:var(--green)">${fmtBRL(valorPago)}</div>
+        </div>
+        <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:8px;padding:12px">
+          <div style="font-size:11px;color:var(--text2);margin-bottom:4px">FALTA</div>
+          <div style="font-weight:700;font-family:'Syne',sans-serif;color:${falta>0?'var(--yellow)':'var(--green)'}">${falta>0?fmtBRL(falta):'✅ Quitado'}</div>
+        </div>
+      </div>
+
+      ${pagamentos.length>0?`
+      <h3 style="font-size:14px;color:var(--text2);margin-bottom:10px">Histórico de pagamentos</h3>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:18px">
+        ${pagamentos.map((p,idx)=>`
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--bg3);border-radius:7px;font-size:13px">
+          <span>Parcela ${idx+1} — ${p.data}</span>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="font-weight:700;color:var(--green)">${fmtBRL(p.valor)}</span>
+            <button class="ico-btn" onclick="removerParcela('${id}',${idx})" title="Remover">🗑️</button>
+          </div>
+        </div>`).join('')}
+      </div>`:''}
+
+      ${falta>0?`
+      <h3 style="font-size:14px;color:var(--text2);margin-bottom:12px">Lançar novo pagamento</h3>
+      <div class="form-grid">
+        <div class="field"><label>Valor (R$) *</label><input id="pp-valor" type="number" placeholder="150,00"/></div>
+        <div class="field"><label>Data *</label><input id="pp-data" type="date" value="${new Date().toISOString().split('T')[0]}"/></div>
+        <div class="field full"><label>Observação</label><input id="pp-obs" placeholder="Ex: 2ª parcela"/></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="closeModal('parc-modal')">Fechar</button>
+        <button class="btn btn-primary" onclick="lancarParcela('${id}',${valorTotal})">Lançar Pagamento</button>
+      </div>`:`
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="closeModal('parc-modal')">Fechar</button>
+      </div>`}
+    </div>
+  </div>`);
+}
+
+async function lancarParcela(id, valorTotal){
+  const valor = parseFloat(document.getElementById('pp-valor').value);
+  const data  = document.getElementById('pp-data').value;
+  const obs   = document.getElementById('pp-obs').value.trim();
+  if(!valor||!data){ toast('Preencha valor e data','err'); return; }
+
+  const insc = inscricoes.find(i=>i.id===id);
+  const pagamentos = [...(insc.pagamentos||[]), {valor, data, obs}];
+  const valorPago  = pagamentos.reduce((s,p)=>s+p.valor,0);
+  const falta = Math.max(0, valorTotal - valorPago);
+  const novoStatus = falta===0 ? 'pago_pix' : insc.status;
+
+  await db.collection('inscricoes').doc(id).update({pagamentos, valorPago, status: novoStatus});
+  toast(`Pagamento de ${fmtBRL(valor)} lançado!${falta===0?' Quitado! ✅':' Falta: '+fmtBRL(falta)}`);
+  closeModal('parc-modal');
+  setTimeout(()=>openParcelas(id), 300);
+}
+
+async function removerParcela(id, idx){
+  if(!confirm('Remover este pagamento?')) return;
+  const insc = inscricoes.find(i=>i.id===id);
+  const pagamentos = (insc.pagamentos||[]).filter((_,i)=>i!==idx);
+  const valorPago  = pagamentos.reduce((s,p)=>s+p.valor,0);
+  await db.collection('inscricoes').doc(id).update({pagamentos, valorPago});
+  toast('Pagamento removido');
+  closeModal('parc-modal');
+  setTimeout(()=>openParcelas(id), 300);
+}
+
+// ── EXPORTAR EXCEL ──
+function exportarExcel(){
+  const header = ['Nome','Email','Telefone','Instagram','Perfil','Faculdade','Forma Pagamento','Fidelidade','Valor Bruto','Valor Líquido','Valor Pago','Falta','Status'];
+  const rows = inscricoes.map(i=>{
+    const vTotal = i.valorFinal||0;
+    const vPago  = i.valorPago||0;
+    const vLiq   = i.valorLiquido!==undefined ? i.valorLiquido : '';
+    return [
+      i.nome||'', i.email||'', i.telefone||'', i.instagram||'',
+      i.perfil||'', i.faculdade||'', i.formaPagamento||'',
+      i.fidelidade==='sim'?'Sim':'Não',
+      vTotal.toFixed(2), vLiq!==''?parseFloat(vLiq).toFixed(2):'',
+      vPago.toFixed(2), Math.max(0,vTotal-vPago).toFixed(2),
+      statusLabel(i.status)
+    ];
+  });
+
+  const csvContent = [header, ...rows].map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const bom = '\uFEFF';
+  const blob = new Blob([bom+csvContent], {type:'text/csv;charset=utf-8;'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = `inscricoes_${curso?.nome||'curso'}_${new Date().toLocaleDateString('pt-BR').replace(/\//g,'-')}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('Excel gerado! Abra com Excel ou Google Sheets.');
+}
+
+// ── EXPORTAR PDF ──
+function exportarPDF(){
+  const c = curso||{};
+  const rows = inscricoes.map((i,idx)=>{
+    const vTotal = i.valorFinal||0;
+    const vPago  = i.valorPago||0;
+    const falta  = Math.max(0, vTotal-vPago);
+    return `<tr style="background:${idx%2===0?'#f9fafb':'#fff'}">
+      <td>${i.nome||''}</td>
+      <td>${i.email||''}</td>
+      <td>${i.telefone||''}</td>
+      <td>${i.formaPagamento||''}</td>
+      <td>${i.fidelidade==='sim'?'Sim':'Não'}</td>
+      <td style="text-align:right">R$ ${vTotal.toFixed(2)}</td>
+      <td style="text-align:right;color:${falta>0?'#d97706':'#059669'}">${falta>0?'R$ '+falta.toFixed(2):'✅'}</td>
+      <td><span style="padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;background:${statusColor(i.status)}">${statusLabel(i.status)}</span></td>
+    </tr>`;
+  }).join('');
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <style>
+    body{font-family:Arial,sans-serif;padding:24px;color:#1f2937;font-size:12px}
+    h1{font-size:18px;margin-bottom:4px}
+    .meta{color:#6b7280;font-size:12px;margin-bottom:20px}
+    table{width:100%;border-collapse:collapse;font-size:11px}
+    th{background:#1f2937;color:#fff;padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.05em}
+    td{padding:7px 10px;border-bottom:1px solid #e5e7eb}
+    .footer{margin-top:20px;font-size:11px;color:#9ca3af;text-align:center}
+    .resumo{display:flex;gap:20px;margin-bottom:20px;flex-wrap:wrap}
+    .resumo-item{background:#f3f4f6;border-radius:8px;padding:10px 16px;min-width:120px}
+    .resumo-item .label{font-size:10px;color:#6b7280;text-transform:uppercase;margin-bottom:2px}
+    .resumo-item .val{font-size:16px;font-weight:700}
+  </style></head><body>
+  <h1>${c.nome||'Relatório de Inscrições'}</h1>
+  <p class="meta">${c.data||''} · ${c.local||''} · Gerado em ${new Date().toLocaleDateString('pt-BR')}</p>
+  <div class="resumo">
+    <div class="resumo-item"><div class="label">Total inscritos</div><div class="val">${inscricoes.length}</div></div>
+    <div class="resumo-item"><div class="label">Confirmados</div><div class="val" style="color:#059669">${inscricoes.filter(i=>i.status==='pago_pix'||i.status==='pago_cartao').length}</div></div>
+    <div class="resumo-item"><div class="label">Pendentes</div><div class="val" style="color:#d97706">${inscricoes.filter(i=>i.status==='pendente'||i.status==='aguard_confirm').length}</div></div>
+    <div class="resumo-item"><div class="label">Receita confirmada</div><div class="val" style="color:#2563eb">R$ ${inscricoes.reduce((s,i)=>s+(i.valorPago||0),0).toFixed(2)}</div></div>
+  </div>
+  <table>
+    <thead><tr><th>Nome</th><th>Email</th><th>Telefone</th><th>Pagamento</th><th>Fidelidade</th><th>Valor</th><th>Falta</th><th>Status</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+  <p class="footer">Gestor de Cursos · OrtoFlix · @fccursos</p>
+  <script>window.onload=()=>{window.print();}<\/script>
+  </body></html>`;
+
+  const w = window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
+}
+
+function statusColor(s){
+  return {pago_pix:'#d1fae5',pago_cartao:'#dbeafe',pendente:'#fef3c7',aguard_confirm:'#ffedd5',cortesia:'#ede9fe',cancelado:'#fee2e2'}[s]||'#f3f4f6';
+}
+
 function toggleLinkCard(){ document.getElementById('link-card-wrap')?.classList.toggle('hidden') }
 function copyText(txt){ navigator.clipboard.writeText(txt).then(()=>toast('Copiado!')) }
+
+async function salvarLiquido(id, valor){
+  const v = parseFloat(valor)||0;
+  await db.collection('inscricoes').doc(id).update({valorLiquido: v});
+  toast('Valor líquido salvo!');
+}
 
 async function updateStatus(id, status, sel){
   sel.className = `sts-sel sts-${status}`;
@@ -1147,7 +1348,8 @@ function renderPublicPagamento(){
     <div class="aviso-pgto-box">
       <h3>📤 Após realizar o pagamento</h3>
       <p style="font-size:14px;color:var(--text2);margin-bottom:14px">Clique no botão abaixo para nos avisar que o pagamento foi efetuado. Isso agiliza a confirmação da sua vaga!</p>
-      <a href="${avisoLink}" class="btn btn-green btn-full" style="margin-top:0">✅ Avisar que paguei</a>
+      <a href="${avisoLink}" target="_blank" class="btn btn-green btn-full" style="margin-top:0">✅ Avisar que paguei</a>
+      <p style="font-size:13px;color:var(--text2);margin-top:12px;text-align:center">Ou nos comunique pelo direct do Instagram: <a href="https://instagram.com/fccursos" target="_blank" style="color:var(--accent);font-weight:700">@fccursos</a></p>
     </div>
 
     ${(c.data||c.local)?`
@@ -1169,7 +1371,7 @@ function renderPublicPagamento(){
 // ══════════════════════════════════════════════════════
 function showAvisarPage(){
   hide('loading-screen'); hide('app'); hide('login-page'); show('public-page');
-  const inscId = window.location.hash.replace('#/avisar/','');
+  const inscId = hashNow.replace('#/avisar/','');
   if(!inscId){ document.getElementById('public-page').innerHTML='<div style="padding:40px;text-align:center;color:var(--text2)">Link inválido.</div>'; return; }
 
   db.collection('inscricoes').doc(inscId).get().then(snap=>{
