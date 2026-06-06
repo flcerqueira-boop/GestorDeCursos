@@ -1406,7 +1406,7 @@ function renderPublicPagamento(){
     <div class="aviso-pgto-box">
       <h3>📤 Após realizar o pagamento</h3>
       <p style="font-size:14px;color:var(--text2);margin-bottom:14px">Clique no botão abaixo para nos avisar que o pagamento foi efetuado. Isso agiliza a confirmação da sua vaga!</p>
-      <a href="${avisoLink}" target="_blank" class="btn btn-green btn-full" style="margin-top:0">✅ Avisar que paguei</a>
+      <button onclick="window.location.hash='#/avisar/${pubInscId}';window.location.reload()" class="btn btn-green btn-full" style="margin-top:0">✅ Avisar que paguei</button>
       <p style="font-size:13px;color:var(--text2);margin-top:12px;text-align:center">Ou nos comunique pelo direct do Instagram: <a href="https://instagram.com/fccursos" target="_blank" style="color:var(--accent);font-weight:700">@fccursos</a></p>
     </div>
 
