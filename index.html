@@ -419,8 +419,8 @@ function toast(msg, type='ok'){
 }
 function fmtBRL(v){ return 'R$ ' + (parseFloat(v)||0).toFixed(2).replace('.',',') }
 function fmtDate(ts){ if(!ts) return '-'; const d = ts.toDate ? ts.toDate() : new Date(ts); return d.toLocaleDateString('pt-BR'); }
-function statusLabel(s){ return {pago_pix:'Pago PIX',pago_cartao:'Pago Cartão',pendente:'Pendente',aguard_confirm:'Aguard. Confirmação',cortesia:'Cortesia',cancelado:'Cancelado'}[s]||s }
-function statusClass(s){ return {pago_pix:'b-green',pago_cartao:'b-blue',pendente:'b-yellow',aguard_confirm:'b-orange',cortesia:'b-purple',cancelado:'b-red'}[s]||'' }
+function statusLabel(s){ return {pago_pix:'Pago PIX',pago_cartao:'Pago Cartão',aguard_confirm:'Aguard. Confirmação',pgto_parcial:'Pgto. Parcial',cortesia:'Cortesia',cancelado:'Cancelado'}[s]||s }
+function statusClass(s){ return {pago_pix:'b-green',pago_cartao:'b-blue',aguard_confirm:'b-yellow',pgto_parcial:'b-orange',cortesia:'b-purple',cancelado:'b-red'}[s]||'' }
 
 // ══════════════════════════
 // PUBLIC ROUTE DETECTION
@@ -585,8 +585,7 @@ function renderDashboard(){
         <td><strong>${i.nome}</strong></td>
         <td>${i.formaPagamento||'-'}</td>
         <td>${fmtBRL(i.valorFinal)}</td>
-        <td><span class="badge ${statusClass(i.status)}">${statusLabel(i.status)}</span></td>
-      </tr>`).join('')}</tbody>
+        <td><span class="badge ${statusClass(i.status)}">${statusLabel(i.status)}</span></td>      </tr>`).join('')}</tbody>
     </table></div>`:'<div class="empty"><div class="ico">📋</div><p>Nenhuma inscrição ainda.</p></div>'}
   </div>`;
 }
