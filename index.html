@@ -13,7 +13,16 @@
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="🎓 Treinamento em Exercícios Terapêuticos — Inscrições abertas!">
 <meta name="twitter:description" content="29 e 30 de agosto de 2026 · Aracaju, SE · Dr. Felipe Cerqueira · OrtoFlix">
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#0d1117">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Gestor de Cursos">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icon-180.png">
+<link rel="apple-touch-icon" sizes="152x152" href="/icon-152.png">
+<link rel="apple-touch-icon" sizes="120x120" href="/icon-120.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/icon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/icon-16.png">
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
@@ -1515,11 +1524,12 @@ async function enviarAviso(inscId, nome, pgto, valor){
   }
 }
 
-// ══════════════════════════════════════════════════════
-// MODAL HELPERS
-// ══════════════════════════════════════════════════════
-function closeModal(id){ document.getElementById(id)?.remove() }
-function closeIfOverlay(e,id){ if(e.target.classList.contains('overlay')) closeModal(id) }
+// Register Service Worker
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('/sw.js').catch(e=>console.log('SW:', e));
+  });
+}
 </script>
 </body>
 </html>
