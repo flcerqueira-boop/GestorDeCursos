@@ -127,8 +127,8 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .sts-sel{padding:4px 8px;border-radius:6px;border:1px solid var(--border);font-size:12px;font-weight:600;cursor:pointer;outline:none;background:var(--bg3);color:var(--text)}
 .sts-pago_pix{background:rgba(16,185,129,.1);color:var(--green);border-color:rgba(16,185,129,.2)}
 .sts-pago_cartao{background:rgba(59,130,246,.1);color:var(--blue);border-color:rgba(59,130,246,.2)}
-.sts-pendente{background:rgba(245,158,11,.1);color:var(--yellow);border-color:rgba(245,158,11,.2)}
-.sts-aguard_confirm{background:rgba(249,115,22,.1);color:var(--accent);border-color:rgba(249,115,22,.2)}
+.sts-pgto_parcial{background:rgba(249,115,22,.1);color:var(--accent);border-color:rgba(249,115,22,.2)}
+.sts-aguard_confirm{background:rgba(245,158,11,.1);color:var(--yellow);border-color:rgba(245,158,11,.2)}
 .sts-cortesia{background:rgba(139,92,246,.1);color:var(--purple);border-color:rgba(139,92,246,.2)}
 .sts-cancelado{background:rgba(239,68,68,.1);color:var(--red);border-color:rgba(239,68,68,.2)}
 
@@ -345,7 +345,6 @@ select option{background:var(--bg3)}
       <button class="nav-btn" data-page="notificacoes" onclick="goTo('notificacoes')" id="nav-notif"><span class="ico">🔔</span><span>Notificações</span></button>
       <button class="nav-btn" data-page="inscricoes" onclick="goTo('inscricoes')"><span class="ico">👥</span><span>Inscrições</span></button>
       <button class="nav-btn" data-page="gastos" onclick="goTo('gastos')"><span class="ico">💰</span><span>Gastos</span></button>
-      <button class="nav-btn" data-page="materiais" onclick="goTo('materiais')"><span class="ico">📁</span><span>Materiais</span></button>
       <button class="nav-btn" data-page="config" onclick="goTo('config')"><span class="ico">⚙️</span><span>Config. Curso</span></button>
     </nav>
     <div class="sb-foot">
@@ -472,7 +471,6 @@ function startListeners(){
   });
   unsubMat = db.collection('materiais').onSnapshot(snap=>{
     materiais = snap.docs.map(d=>({id:d.id,...d.data()}));
-    if(currentPage==='materiais') renderMateriais();
   });
   unsubNotif = db.collection('notificacoes').onSnapshot(snap=>{
     notificacoes = snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.criadoEm?.seconds||0)-(a.criadoEm?.seconds||0));
@@ -508,15 +506,39 @@ function goTo(page){
 // ══════════════════════════════════════════════════════
 function renderDashboard(){
   const pagos   = inscricoes.filter(i=>i.status==='pago_pix'||i.status==='pago_cartao'||i.status==='cortesia');
-  const pend    = inscricoes.filter(i=>i.status==='pendente');
   const aguard  = inscricoes.filter(i=>i.status==='aguard_confirm');
+  const parcial = inscricoes.filter(i=>i.status==='pgto_parcial');
   const totalG  = gastos.reduce((s,g)=>s+(g.valor||0),0);
-  const receitaBruta  = inscricoes.reduce((s,i)=>s+(i.valorPago||0),0);
-  const receitaLiq    = inscricoes.reduce((s,i)=>{
+
+  // Receita BRUTA: PIX à vista pago + cartão valor cheio + PIX parcelado valor TOTAL (incl. parcelas futuras)
+  const receitaBruta = inscricoes.reduce((s,i)=>{
     const isCartao = (i.formaPagamento||'').includes('Cartão');
-    return s + (isCartao ? (i.valorLiquido||0) : (i.valorPago||0));
+    const isPix3x  = (i.formaPagamento||'').includes('3x');
+    if(isCartao) return s + (i.valorFinal||0);
+    if(isPix3x)  return s + (i.valorFinal||0); // total incluindo parcelas futuras
+    return s + (i.valorPago||0);
   },0);
-  const saldo   = receitaLiq - totalG;
+
+  // Receita LÍQUIDA: PIX à vista pago + cartão valor líquido digitado + PIX parcelado só parcelas pagas
+  const receitaLiq = inscricoes.reduce((s,i)=>{
+    const isCartao = (i.formaPagamento||'').includes('Cartão');
+    const isPix3x  = (i.formaPagamento||'').includes('3x');
+    if(isCartao) return s + (i.valorLiquido||0);
+    if(isPix3x)  return s + (i.valorPago||0); // só parcelas efetivamente pagas
+    return s + (i.valorPago||0);
+  },0);
+
+  // Lucro Líquido PREVISTO: igual líquida + parcelas PIX 3x ainda não pagas
+  const receitaPrevista = inscricoes.reduce((s,i)=>{
+    const isCartao = (i.formaPagamento||'').includes('Cartão');
+    const isPix3x  = (i.formaPagamento||'').includes('3x');
+    if(isCartao) return s + (i.valorLiquido||0);
+    if(isPix3x)  return s + (i.valorFinal||0); // valor total assumindo que todos vão quitar
+    return s + (i.valorPago||0);
+  },0);
+
+  const saldo        = receitaLiq - totalG;
+  const saldoPrevisto = receitaPrevista - totalG;
   const naoLidas = notificacoes.filter(n=>!n.lida).length;
 
   document.getElementById('main-content').innerHTML = `
@@ -526,7 +548,7 @@ function renderDashboard(){
         <h1>${curso?.nome||'Nenhum curso configurado'}</h1>
         <p>${curso?(curso.data||'')+(curso.local?' · '+curso.local:''):'Configure em ⚙️ Config. Curso'}</p>
       </div>
-      <div class="${saldo>=0?'balance pos':'balance neg'}">Saldo: ${fmtBRL(saldo)}</div>
+      <div class="${saldo>=0?'balance pos':'balance neg'}">Saldo líquido: ${fmtBRL(saldo)} <span style="font-size:11px;opacity:.7">(previsto: ${fmtBRL(saldoPrevisto)})</span></div>
     </div>
 
     ${naoLidas>0?`<div style="background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.25);border-radius:var(--r);padding:14px 18px;margin-bottom:22px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
@@ -537,10 +559,11 @@ function renderDashboard(){
     <div class="stats-grid">
       <div class="stat c-blue"><div class="stat-ico">👥</div><div><span class="stat-val">${inscricoes.length}</span><span class="stat-lbl">Total Inscritos</span></div></div>
       <div class="stat c-green"><div class="stat-ico">✅</div><div><span class="stat-val">${pagos.length}</span><span class="stat-lbl">Confirmados</span></div></div>
-      <div class="stat c-orange"><div class="stat-ico">⏳</div><div><span class="stat-val">${aguard.length}</span><span class="stat-lbl">Aguard. Confirmação</span></div></div>
-      <div class="stat c-yellow"><div class="stat-ico">🕐</div><div><span class="stat-val">${pend.length}</span><span class="stat-lbl">Pendentes</span></div></div>
-      <div class="stat c-teal"><div class="stat-ico">📈</div><div><span class="stat-val">${fmtBRL(receitaBruta)}</span><span class="stat-lbl">Receita Bruta</span></div></div>
+      <div class="stat c-yellow"><div class="stat-ico">⏳</div><div><span class="stat-val">${aguard.length}</span><span class="stat-lbl">Aguard. Confirmação</span></div></div>
+      <div class="stat c-orange"><div class="stat-ico">💰</div><div><span class="stat-val">${parcial.length}</span><span class="stat-lbl">Pgto. Parcial</span></div></div>
+      <div class="stat c-teal"><div class="stat-ico">📊</div><div><span class="stat-val">${fmtBRL(receitaBruta)}</span><span class="stat-lbl">Receita Bruta</span></div></div>
       <div class="stat c-blue"><div class="stat-ico">💳</div><div><span class="stat-val">${fmtBRL(receitaLiq)}</span><span class="stat-lbl">Receita Líquida</span></div></div>
+      <div class="stat c-purple"><div class="stat-ico">🔮</div><div><span class="stat-val">${fmtBRL(receitaPrevista)}</span><span class="stat-lbl">Previsto (c/ parcelas)</span></div></div>
       <div class="stat c-red"><div class="stat-ico">💸</div><div><span class="stat-val">${fmtBRL(totalG)}</span><span class="stat-lbl">Total Gastos</span></div></div>
     </div>
 
@@ -659,8 +682,8 @@ function renderInscricoes(){
       <div class="search-box"><span>🔍</span><input placeholder="Buscar..." value="${inscBusca}" oninput="inscBusca=this.value;renderInscricoes()"/></div>
       <select class="filter-sel" onchange="inscFiltroStatus=this.value;renderInscricoes()">
         <option value="todos" ${inscFiltroStatus==='todos'?'selected':''}>Todos</option>
-        <option value="pendente" ${inscFiltroStatus==='pendente'?'selected':''}>Pendente</option>
         <option value="aguard_confirm" ${inscFiltroStatus==='aguard_confirm'?'selected':''}>Aguard. Confirmação</option>
+        <option value="pgto_parcial" ${inscFiltroStatus==='pgto_parcial'?'selected':''}>Pgto. Parcial</option>
         <option value="pago_pix" ${inscFiltroStatus==='pago_pix'?'selected':''}>Pago PIX</option>
         <option value="pago_cartao" ${inscFiltroStatus==='pago_cartao'?'selected':''}>Pago Cartão</option>
         <option value="cortesia" ${inscFiltroStatus==='cortesia'?'selected':''}>Cortesia</option>
@@ -691,8 +714,8 @@ function renderInscricoes(){
               <td>${falta>0?`<span style="color:var(--yellow);font-weight:600">${fmtBRL(falta)}</span>`:`<span style="color:var(--green)">✅</span>`}</td>
               <td>
                 <select class="sts-sel sts-${i.status}" onchange="updateStatus('${i.id}',this.value,this)">
-                  <option value="pendente" ${i.status==='pendente'?'selected':''}>Pendente</option>
-                  <option value="aguard_confirm" ${i.status==='aguard_confirm'?'selected':''}>Aguard. Confirm.</option>
+                  <option value="aguard_confirm" ${i.status==='aguard_confirm'?'selected':''}>Aguard. Confirmação</option>
+                  <option value="pgto_parcial" ${i.status==='pgto_parcial'?'selected':''}>Pgto. Parcial</option>
                   <option value="pago_pix" ${i.status==='pago_pix'?'selected':''}>Pago PIX</option>
                   <option value="pago_cartao" ${i.status==='pago_cartao'?'selected':''}>Pago Cartão</option>
                   <option value="cortesia" ${i.status==='cortesia'?'selected':''}>Cortesia</option>
@@ -801,18 +824,19 @@ async function removerParcela(id, idx){
 
 // ── EXPORTAR EXCEL ──
 function exportarExcel(){
-  const header = ['Nome','Email','Telefone','Instagram','Perfil','Faculdade','Forma Pagamento','Fidelidade','Valor Bruto','Valor Líquido','Valor Pago','Falta','Status'];
+  const header = ['Nome','Email','Telefone','Instagram','Perfil','Faculdade','Forma Pagamento','Fidelidade','Valor Bruto','Valor Líquido (Cartão)','Valor Pago','Falta','Status','Parcelas Pagas'];
   const rows = inscricoes.map(i=>{
     const vTotal = i.valorFinal||0;
     const vPago  = i.valorPago||0;
     const vLiq   = i.valorLiquido!==undefined ? i.valorLiquido : '';
+    const parcelas = (i.pagamentos||[]).map((p,idx)=>`P${idx+1}: R$${p.valor} em ${p.data}`).join(' | ');
     return [
       i.nome||'', i.email||'', i.telefone||'', i.instagram||'',
       i.perfil||'', i.faculdade||'', i.formaPagamento||'',
       i.fidelidade==='sim'?'Sim':'Não',
       vTotal.toFixed(2), vLiq!==''?parseFloat(vLiq).toFixed(2):'',
       vPago.toFixed(2), Math.max(0,vTotal-vPago).toFixed(2),
-      statusLabel(i.status)
+      statusLabel(i.status), parcelas
     ];
   });
 
@@ -877,9 +901,14 @@ function exportarPDF(){
   <script>window.onload=()=>{window.print();}<\/script>
   </body></html>`;
 
-  const w = window.open('','_blank');
-  w.document.write(html);
-  w.document.close();
+  const blob = new Blob([html], {type:'text/html;charset=utf-8'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = `relatorio_${curso?.nome||'curso'}_${new Date().toLocaleDateString('pt-BR').replace(/\//g,'-')}.html`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('Relatório baixado! Abra o arquivo para imprimir/salvar como PDF.');
 }
 
 function statusColor(s){
@@ -932,7 +961,7 @@ function openInscModal(insc){
         <div class="field"><label>Forma de Pagamento</label><select id="if-pgto">${['PIX à vista','3x no PIX','Cartão (até 10x)','Cortesia'].map(f=>`<option ${d.formaPagamento===f?'selected':''}>${f}</option>`).join('')}</select></div>
         <div class="field"><label>Fidelidade</label><select id="if-fid"><option value="nao" ${d.fidelidade==='nao'?'selected':''}>Não</option><option value="sim" ${d.fidelidade==='sim'?'selected':''}>Sim</option></select></div>
         <div class="field"><label>Valor Final (R$)</label><input id="if-valor" type="number" value="${d.valorFinal||''}"/></div>
-        <div class="field"><label>Status</label><select id="if-status">${['pendente','aguard_confirm','pago_pix','pago_cartao','cortesia','cancelado'].map(s=>`<option value="${s}" ${d.status===s?'selected':''}>${statusLabel(s)}</option>`).join('')}</select></div>
+        <div class="field"><label>Status</label><select id="if-status">${['aguard_confirm','pgto_parcial','pago_pix','pago_cartao','cortesia','cancelado'].map(s=>`<option value="${s}" ${d.status===s?'selected':''}>${statusLabel(s)}</option>`).join('')}</select></div>
       </div>
       <div class="modal-actions">
         <button class="btn btn-outline" onclick="closeModal('insc-modal')">Cancelar</button>
@@ -1014,51 +1043,7 @@ async function saveGasto(){
 }
 async function deleteGasto(id){if(!confirm('Remover?'))return;await db.collection('gastos').doc(id).delete();toast('Removido');}
 
-// ══════════════════════════════════════════════════════
-// MATERIAIS
-// ══════════════════════════════════════════════════════
-const CATS_MAT = ['Apostila','Slides','Vídeos','Formulários','Avaliações','Outros'];
-
-function renderMateriais(){
-  const porCat = CATS_MAT.map(c=>({cat:c,items:materiais.filter(m=>m.categoria===c)})).filter(c=>c.items.length);
-  document.getElementById('main-content').innerHTML = `
-  <div class="page fade-in">
-    <div class="page-hdr">
-      <div><h1>Materiais do Curso</h1><p>${materiais.length} link(s)</p></div>
-      <button class="btn btn-primary" onclick="openAddMat()">➕ Adicionar Material</button>
-    </div>
-    ${porCat.length===0?'<div class="empty"><div class="ico">📁</div><p>Nenhum material cadastrado.</p></div>':
-    `<div class="mat-grid">${porCat.map(({cat,items})=>`
-    <div class="mat-cat"><div class="mat-cat-title">${cat}</div><div class="mat-list">
-      ${items.map(m=>`<div class="mat-item"><div class="mat-info"><span class="mat-nome">${m.nome}</span>${m.descricao?`<span class="mat-desc">${m.descricao}</span>`:''}<a href="${m.url}" target="_blank" class="mat-link">🔗 Abrir</a></div><button class="ico-btn" onclick="deleteMat('${m.id}')">🗑️</button></div>`).join('')}
-    </div></div>`).join('')}</div>`}
-  </div>`;
-}
-function openAddMat(){
-  document.body.insertAdjacentHTML('beforeend',`
-  <div class="overlay" id="mat-modal" onclick="closeIfOverlay(event,'mat-modal')">
-    <div class="modal"><h2>Novo Material</h2>
-      <div class="form-grid">
-        <div class="field full"><label>Nome *</label><input id="mf-nome"/></div>
-        <div class="field full"><label>URL *</label><input id="mf-url" placeholder="https://drive.google.com/..."/></div>
-        <div class="field"><label>Categoria</label><select id="mf-cat">${CATS_MAT.map(c=>`<option>${c}</option>`).join('')}</select></div>
-        <div class="field"><label>Descrição</label><input id="mf-desc"/></div>
-      </div>
-      <div class="modal-actions">
-        <button class="btn btn-outline" onclick="closeModal('mat-modal')">Cancelar</button>
-        <button class="btn btn-primary" onclick="saveMat()">Salvar</button>
-      </div>
-    </div>
-  </div>`);
-}
-async function saveMat(){
-  const nome=document.getElementById('mf-nome').value.trim();
-  const url=document.getElementById('mf-url').value.trim();
-  if(!nome||!url){toast('Preencha nome e URL','err');return;}
-  await db.collection('materiais').add({nome,url,categoria:document.getElementById('mf-cat').value,descricao:document.getElementById('mf-desc').value.trim(),criadoEm:firebase.firestore.FieldValue.serverTimestamp()});
-  toast('Material adicionado!'); closeModal('mat-modal');
-}
-async function deleteMat(id){if(!confirm('Remover?'))return;await db.collection('materiais').doc(id).delete();toast('Removido');}
+function renderMateriais(){}
 
 // ══════════════════════════════════════════════════════
 // CONFIG CURSO
@@ -1406,7 +1391,7 @@ function renderPublicPagamento(){
     <div class="aviso-pgto-box">
       <h3>📤 Após realizar o pagamento</h3>
       <p style="font-size:14px;color:var(--text2);margin-bottom:14px">Clique no botão abaixo para nos avisar que o pagamento foi efetuado. Isso agiliza a confirmação da sua vaga!</p>
-      <button onclick="window.location.hash='#/avisar/${pubInscId}';window.location.reload()" class="btn btn-green btn-full" style="margin-top:0">✅ Avisar que paguei</button>
+      <button onclick="irParaAvisar('${pubInscId}')" class="btn btn-green btn-full" style="margin-top:0">✅ Avisar que paguei</button>
       <p style="font-size:13px;color:var(--text2);margin-top:12px;text-align:center">Ou nos comunique pelo direct do Instagram: <a href="https://instagram.com/fccursos" target="_blank" style="color:var(--accent);font-weight:700">@fccursos</a></p>
     </div>
 
@@ -1427,9 +1412,19 @@ function renderPublicPagamento(){
 // ══════════════════════════════════════════════════════
 // PÁGINA PÚBLICA — AVISAR PAGAMENTO
 // ══════════════════════════════════════════════════════
+function irParaAvisar(inscId){
+  // Carrega diretamente sem reload, evitando tela preta
+  hide('public-page');
+  show('public-page');
+  db.collection('inscricoes').doc(inscId).get().then(snap=>{
+    if(!snap.exists){ document.getElementById('public-page').innerHTML='<div style="padding:40px;text-align:center;color:var(--text2)">Inscrição não encontrada.</div>'; return; }
+    renderAvisarForm(inscId, snap.data());
+  });
+}
+
 function showAvisarPage(){
   hide('loading-screen'); hide('app'); hide('login-page'); show('public-page');
-  const inscId = hashNow.replace('#/avisar/','');
+  const inscId = (hashNow||window.location.hash).replace('#/avisar/','');
   if(!inscId){ document.getElementById('public-page').innerHTML='<div style="padding:40px;text-align:center;color:var(--text2)">Link inválido.</div>'; return; }
 
   db.collection('inscricoes').doc(inscId).get().then(snap=>{
