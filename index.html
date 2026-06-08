@@ -478,7 +478,7 @@ function startListeners(){
 
   // Inscrições: tempo real (dashboard precisa)
   unsubInsc = db.collection('inscricoes').onSnapshot(snap=>{
-    inscricoes = snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.criadoEm?.seconds||0)-(a.criadoEm?.seconds||0));
+    inscricoes = snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.nome||'').localeCompare(b.nome||'','pt-BR'));
     if(currentPage==='inscricoes') renderInscricoes();
     if(currentPage==='dashboard') renderDashboard();
   });
@@ -592,7 +592,7 @@ function renderDashboard(){
     <h3 style="margin-bottom:14px;color:var(--text2);font-size:15px">Últimas inscrições</h3>
     <div class="tbl-wrap"><table>
       <thead><tr><th>Nome</th><th>Pagamento</th><th>Valor</th><th>Status</th></tr></thead>
-      <tbody>${inscricoes.slice(0,5).map(i=>`
+      <tbody>${[...inscricoes].sort((a,b)=>(b.criadoEm?.seconds||0)-(a.criadoEm?.seconds||0)).slice(0,5).map(i=>`
       <tr>
         <td><strong>${i.nome}</strong></td>
         <td>${i.formaPagamento||'-'}</td>
@@ -946,10 +946,18 @@ async function salvarLiquido(id, valor){
 
 async function updateStatus(id, status, sel){
   sel.className = `sts-sel sts-${status}`;
+  const insc = inscricoes.find(i=>i.id===id);
   const updates = {status};
   if(status==='pago_pix'||status==='pago_cartao'){
-    const insc = inscricoes.find(i=>i.id===id);
-    updates.valorPago = insc?.valorFinal||0;
+    const isPix3x = (insc?.formaPagamento||'').includes('3x');
+    if(!isPix3x){
+      // PIX à vista ou cartão: marca valor total como pago
+      updates.valorPago = insc?.valorFinal||0;
+    }
+    // PIX 3x: não sobrescreve, controlado pelas parcelas
+  }
+  if(status==='pgto_parcial'||status==='aguard_confirm'){
+    // Não altera valorPago ao mudar status manualmente
   }
   await db.collection('inscricoes').doc(id).update(updates);
   toast('Status atualizado');
@@ -1005,8 +1013,15 @@ async function saveInsc(id){
     valorFinal:parseFloat(document.getElementById('if-valor').value)||0,
     status:document.getElementById('if-status').value,
   };
-  if(id){ await db.collection('inscricoes').doc(id).update(data); toast('Atualizado!'); }
-  else { await db.collection('inscricoes').add({...data, criadoEm:firebase.firestore.FieldValue.serverTimestamp()}); toast('Adicionado!'); }
+  // Auto-set valorPago for PIX à vista and cartão when confirmed
+  const isPix3x = data.formaPagamento.includes('3x');
+  if((data.status==='pago_pix'||data.status==='pago_cartao') && !isPix3x){
+    data.valorPago = data.valorFinal;
+  }
+  try {
+    if(id){ await db.collection('inscricoes').doc(id).update(data); toast('Atualizado!'); }
+    else { await db.collection('inscricoes').add({...data, criadoEm:firebase.firestore.FieldValue.serverTimestamp()}); toast('Adicionado!'); }
+  } catch(e){ toast('Erro ao salvar','err'); }
   closeModal('insc-modal');
 }
 
@@ -1058,8 +1073,11 @@ async function saveGasto(){
   const desc=document.getElementById('gf-desc').value.trim();
   const val=parseFloat(document.getElementById('gf-val').value.replace(',','.'));
   if(!desc||isNaN(val)){toast('Preencha descrição e valor','err');return;}
-  await db.collection('gastos').add({descricao:desc,categoria:document.getElementById('gf-cat').value,valor:val,criadoEm:firebase.firestore.FieldValue.serverTimestamp()});
-  toast('Gasto salvo!'); closeModal('gasto-modal');
+  try {
+    await db.collection('gastos').add({descricao:desc,categoria:document.getElementById('gf-cat').value,valor:val,criadoEm:firebase.firestore.FieldValue.serverTimestamp()});
+    toast('Gasto salvo!');
+  } catch(e){ toast('Erro ao salvar','err'); }
+  closeModal('gasto-modal');
 }
 async function deleteGasto(id){if(!confirm('Remover?'))return;await db.collection('gastos').doc(id).delete();toast('Removido');}
 
