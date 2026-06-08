@@ -452,8 +452,23 @@ function doLogin(){
   const btn   = document.getElementById('login-btn');
   const err   = document.getElementById('login-err');
   btn.textContent='Entrando...'; btn.disabled=true; err.style.display='none';
+  
+  // Timeout fallback — if Firebase takes too long, reset button
+  const timeout = setTimeout(()=>{
+    btn.textContent='Entrar'; btn.disabled=false;
+    err.textContent='Conexão lenta. Tente novamente.';
+    err.style.display='block';
+  }, 10000);
+
   auth.signInWithEmailAndPassword(email, pass)
-    .catch(()=>{ err.style.display='block'; btn.textContent='Entrar'; btn.disabled=false; });
+    .then(()=>{ clearTimeout(timeout); })
+    .catch(()=>{ 
+      clearTimeout(timeout);
+      err.textContent='Email ou senha incorretos';
+      err.style.display='block'; 
+      btn.textContent='Entrar'; 
+      btn.disabled=false; 
+    });
 }
 document.addEventListener('keydown', e=>{ if(e.key==='Enter' && !document.getElementById('login-page').classList.contains('hidden')) doLogin(); });
 
