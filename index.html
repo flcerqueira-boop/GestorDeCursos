@@ -157,6 +157,10 @@ tr:hover td{background:rgba(255,255,255,.02)}
 /* MODAL */
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;z-index:500;padding:20px}
 .modal{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:26px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;box-shadow:0 8px 48px rgba(0,0,0,.6)}
+.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+.modal-header h2{font-size:19px;margin:0}
+.modal-close{background:none;border:none;color:var(--text2);font-size:22px;cursor:pointer;padding:0;line-height:1;transition:color .15s}
+.modal-close:hover{color:var(--text)}
 .modal h2{font-size:19px;margin-bottom:20px}
 .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:22px}
 
@@ -766,7 +770,7 @@ async function openParcelas(id){
   document.body.insertAdjacentHTML('beforeend',`
   <div class="overlay" id="parc-modal" onclick="closeIfOverlay(event,'parc-modal')">
     <div class="modal">
-      <h2>💰 Parcelas — ${insc.nome}</h2>
+      <div class="modal-header"><h2>💰 Parcelas — ${insc.nome}</h2><button class="modal-close" onclick="closeModal('parc-modal')">✕</button></div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px;text-align:center">
         <div style="background:var(--bg3);border-radius:8px;padding:12px">
           <div style="font-size:11px;color:var(--text2);margin-bottom:4px">TOTAL</div>
@@ -978,7 +982,7 @@ function openInscModal(insc){
   document.body.insertAdjacentHTML('beforeend',`
   <div class="overlay" id="insc-modal" onclick="closeIfOverlay(event,'insc-modal')">
     <div class="modal">
-      <h2>${ed?'Editar Inscrição':'Nova Inscrição'}</h2>
+      <div class="modal-header"><h2>${ed?'Editar Inscrição':'Nova Inscrição'}</h2><button class="modal-close" onclick="closeModal('insc-modal')">✕</button></div>
       <div class="form-grid">
         <div class="field full"><label>Nome *</label><input id="if-nome" value="${d.nome||''}"/></div>
         <div class="field"><label>Email</label><input id="if-email" type="email" value="${d.email||''}"/></div>
@@ -1056,7 +1060,7 @@ function renderGastos(){
 function openAddGasto(){
   document.body.insertAdjacentHTML('beforeend',`
   <div class="overlay" id="gasto-modal" onclick="closeIfOverlay(event,'gasto-modal')">
-    <div class="modal"><h2>Novo Gasto</h2>
+    <div class="modal"><div class="modal-header"><h2>Novo Gasto</h2><button class="modal-close" onclick="closeModal('gasto-modal')">✕</button></div>
       <div class="form-grid">
         <div class="field full"><label>Descrição *</label><input id="gf-desc" placeholder="Ex: Aluguel de sala"/></div>
         <div class="field"><label>Categoria</label><select id="gf-cat">${CATS_GASTO.map(c=>`<option>${c}</option>`).join('')}</select></div>
