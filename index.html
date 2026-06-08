@@ -1578,6 +1578,13 @@ if('serviceWorker' in navigator){
     navigator.serviceWorker.register('/sw.js').catch(e=>console.log('SW:', e));
   });
 }
+
+function closeModal(id){
+  document.querySelectorAll('.overlay').forEach(o => o.remove());
+}
+function closeIfOverlay(e, id){
+  if(e.target.classList.contains('overlay')) closeModal(id);
+}
 </script>
 </body>
 </html>
