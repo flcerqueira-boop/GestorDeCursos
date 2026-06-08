@@ -463,28 +463,39 @@ function doLogout(){
 // LISTENERS
 // ══════════════════════════
 function startListeners(){
+  // Config e notificações: tempo real (críticos)
   unsubCurso = db.collection('config').doc('curso').onSnapshot(snap=>{
     curso = snap.exists ? snap.data() : null;
     if(currentPage==='dashboard') renderDashboard();
     if(currentPage==='config') renderConfig();
   });
+
+  unsubNotif = db.collection('notificacoes').onSnapshot(snap=>{
+    notificacoes = snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.criadoEm?.seconds||0)-(a.criadoEm?.seconds||0));
+    updateNotifBadge();
+    if(currentPage==='notificacoes') renderNotificacoes();
+  });
+
+  // Inscrições: tempo real (dashboard precisa)
   unsubInsc = db.collection('inscricoes').onSnapshot(snap=>{
     inscricoes = snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.criadoEm?.seconds||0)-(a.criadoEm?.seconds||0));
     if(currentPage==='inscricoes') renderInscricoes();
     if(currentPage==='dashboard') renderDashboard();
   });
-  unsubGastos = db.collection('gastos').onSnapshot(snap=>{
+
+  // Gastos: carrega uma vez, recarrega ao navegar
+  db.collection('gastos').get().then(snap=>{
     gastos = snap.docs.map(d=>({id:d.id,...d.data()}));
     if(currentPage==='gastos') renderGastos();
     if(currentPage==='dashboard') renderDashboard();
   });
-  unsubMat = db.collection('materiais').onSnapshot(snap=>{
-    materiais = snap.docs.map(d=>({id:d.id,...d.data()}));
-  });
-  unsubNotif = db.collection('notificacoes').onSnapshot(snap=>{
-    notificacoes = snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.criadoEm?.seconds||0)-(a.criadoEm?.seconds||0));
-    updateNotifBadge();
-    if(currentPage==='notificacoes') renderNotificacoes();
+}
+
+// Reload gastos ao entrar na aba (dados frescos sem listener contínuo)
+function reloadGastos(cb){
+  db.collection('gastos').get().then(snap=>{
+    gastos = snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(cb) cb();
   });
 }
 
@@ -507,7 +518,8 @@ function updateNotifBadge(){
 function goTo(page){
   currentPage = page;
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.page===page));
-  ({dashboard:renderDashboard, notificacoes:renderNotificacoes, inscricoes:renderInscricoes, gastos:renderGastos, materiais:renderMateriais, config:renderConfig})[page]?.();
+  if(page==='gastos'){ reloadGastos(renderGastos); }
+  else { ({dashboard:renderDashboard, notificacoes:renderNotificacoes, inscricoes:renderInscricoes, config:renderConfig})[page]?.(); }
 }
 
 // ══════════════════════════════════════════════════════
