@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Migração — Gestor de Cursos</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<style>
+body{font-family:sans-serif;background:#0d1117;color:#e2e8f0;padding:40px;max-width:600px;margin:0 auto}
+h1{font-size:24px;margin-bottom:8px}
+p{color:#94a3b8;font-size:14px;margin-bottom:24px}
+button{padding:14px 28px;background:#f97316;color:#fff;border:none;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer}
+button:disabled{opacity:.5;cursor:not-allowed}
+#log{margin-top:24px;background:#161b22;border:1px solid #2d3748;border-radius:8px;padding:16px;font-size:13px;font-family:monospace;white-space:pre-wrap;max-height:400px;overflow-y:auto}
+.ok{color:#10b981}.err{color:#ef4444}.info{color:#94a3b8}
+</style>
+</head>
+<body>
+<h1>🔄 Migração de Dados</h1>
+<p>Este script migra os dados do curso atual (coleções raiz) para a nova estrutura (subcoleções por curso).<br>Execute apenas uma vez!</p>
+<button id="btn" onclick="migrar()">Iniciar Migração</button>
+<div id="log"></div>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyAq9ix8gVMn8lr7xtx49yUCDDI4fnpUuiI",
+  authDomain: "cursomanager-53218.firebaseapp.com",
+  projectId: "cursomanager-53218",
+  storageBucket: "cursomanager-53218.firebasestorage.app",
+  messagingSenderId: "250558746109",
+  appId: "1:250558746109:web:ed58b1388c7940103ddd94"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
+const log = document.getElementById('log');
+
+function addLog(msg, type='info'){ log.innerHTML += `<span class="${type}">${msg}\n</span>`; log.scrollTop=log.scrollHeight; }
+
+auth.onAuthStateChanged(user=>{ if(!user){ addLog('Faça login primeiro em gestordecursos.ortoflix.com e depois abra esta página.','err'); document.getElementById('btn').disabled=true; } else { addLog(`Logado como ${user.email}`,'ok'); } });
+
+async function migrar(){
+  const btn=document.getElementById('btn'); btn.disabled=true;
+  addLog('\n=== INICIANDO MIGRAÇÃO ===\n','info');
+  try{
+    // 1. Lê config do curso atual
+    addLog('Lendo configurações do curso...','info');
+    const configSnap = await db.collection('config').doc('curso').get();
+    const cursoData = configSnap.exists ? configSnap.data() : {};
+    addLog(`Config encontrada: ${cursoData.nome||'sem nome'}`,'ok');
+
+    // 2. Cria documento do curso em /cursos/
+    addLog('Criando curso em /cursos/...','info');
+    const cursoRef = await db.collection('cursos').add({
+      ...cursoData,
+      status: 'ativo',
+      criadoEm: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    addLog(`Curso criado com ID: ${cursoRef.id}`,'ok');
+
+    // 3. Migra inscrições
+    addLog('\nMigrando inscrições...','info');
+    const inscSnap = await db.collection('inscricoes').get();
+    addLog(`${inscSnap.size} inscrições encontradas`,'info');
+    let insc=0;
+    for(const doc of inscSnap.docs){
+      await cursoRef.collection('inscricoes').doc(doc.id).set(doc.data());
+      insc++;
+      if(insc%5===0) addLog(`  ${insc}/${inscSnap.size} migradas...`,'info');
+    }
+    addLog(`✅ ${insc} inscrições migradas`,'ok');
+
+    // 4. Migra gastos
+    addLog('\nMigrando gastos...','info');
+    const gastosSnap = await db.collection('gastos').get();
+    for(const doc of gastosSnap.docs){ await cursoRef.collection('gastos').doc(doc.id).set(doc.data()); }
+    addLog(`✅ ${gastosSnap.size} gastos migrados`,'ok');
+
+    // 5. Migra notificações
+    addLog('\nMigrando notificações...','info');
+    const notifSnap = await db.collection('notificacoes').get();
+    for(const doc of notifSnap.docs){ await cursoRef.collection('notificacoes').doc(doc.id).set(doc.data()); }
+    addLog(`✅ ${notifSnap.size} notificações migradas`,'ok');
+
+    addLog('\n=== MIGRAÇÃO CONCLUÍDA ✅ ===','ok');
+    addLog(`\nID do curso migrado: ${cursoRef.id}`,'ok');
+    addLog('\nAgora acesse gestordecursos.ortoflix.com — os dados estarão disponíveis.','ok');
+    addLog('\nATENÇÃO: Os dados antigos nas coleções raiz foram mantidos. Você pode apagá-los manualmente no Firebase Console quando confirmar que tudo está correto.','info');
+  } catch(e){
+    addLog(`\nERRO: ${e.message}`,'err');
+    btn.disabled=false;
+  }
+}
+</script>
+</body>
+</html>
