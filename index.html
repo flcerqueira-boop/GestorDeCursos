@@ -662,7 +662,7 @@ function renderDashboard(){
   const receitaBruta = inscricoes.reduce((s,i)=>s+(i.valorFinal||0),0);
   const receitaLiq = inscricoes.reduce((s,i)=>{
     const isCartao=(i.formaPagamento||'').includes('Cartão');
-    const isPix3x=(i.formaPagamento||'').includes('3x');
+    const isPix3x=(i.formaPagamento||'').toLowerCase().includes('pix parcelado')||(i.formaPagamento||'').includes('3x');
     if(isCartao) return s+(i.valorLiquido||0);
     if(isPix3x)  return s+(i.valorPago||0);
     return s+(i.valorPago||0);
@@ -863,7 +863,7 @@ async function updateStatus(id,status,sel){
   sel.className=`sts-sel sts-${status}`;
   const insc=inscricoes.find(i=>i.id===id);
   const updates={status};
-  const isPix3x=(insc?.formaPagamento||'').includes('3x');
+  const isPix3x=(insc?.formaPagamento||'').toLowerCase().includes('pix parcelado')||(insc?.formaPagamento||'').includes('3x');
   if((status==='pago_pix'||status==='pago_cartao')&&!isPix3x) updates.valorPago=insc?.valorFinal||0;
   await db.collection('cursos').doc(cursoAtivoId).collection('inscricoes').doc(id).update(updates);
   toast('Status atualizado');
@@ -886,7 +886,7 @@ function openInscModal(insc){
         <div class="field"><label>Instagram</label><input id="if-insta" value="${d.instagram||''}" placeholder="@usuario"/></div>
         <div class="field"><label>Perfil</label><select id="if-perfil"><option value="formado" ${d.perfil==='formado'?'selected':''}>Formado</option><option value="estudante" ${d.perfil==='estudante'?'selected':''}>Estudante</option></select></div>
         <div class="field"><label>Faculdade</label><input id="if-fac" value="${d.faculdade||''}"/></div>
-        <div class="field"><label>Forma de Pagamento</label><select id="if-pgto">${['PIX à vista','3x no PIX','Cartão (até 10x)','Cortesia'].map(f=>`<option ${d.formaPagamento===f?'selected':''}>${f}</option>`).join('')}</select></div>
+        <div class="field"><label>Forma de Pagamento</label><select id="if-pgto">${['PIX à vista','PIX parcelado','Cartão de crédito (opção 1)','Cartão de crédito (opção 2)','Cortesia'].map(f=>`<option ${d.formaPagamento===f?'selected':''}>${f}</option>`).join('')}</select></div>
         <div class="field"><label>Fidelidade</label><select id="if-fid"><option value="nao" ${d.fidelidade==='nao'?'selected':''}>Não</option><option value="sim" ${d.fidelidade==='sim'?'selected':''}>Sim</option></select></div>
         <div class="field"><label>Valor Final (R$)</label><input id="if-valor" type="number" value="${d.valorFinal||''}"/></div>
         <div class="field"><label>Status</label><select id="if-status">${['aguard_confirm','pgto_parcial','pago_pix','pago_cartao','cortesia','cancelado'].map(s=>`<option value="${s}" ${d.status===s?'selected':''}>${statusLabel(s)}</option>`).join('')}</select></div>
@@ -913,7 +913,7 @@ async function saveInsc(id){
     valorFinal:parseFloat(document.getElementById('if-valor').value)||0,
     status:document.getElementById('if-status').value,
   };
-  const isPix3x=data.formaPagamento.includes('3x');
+  const isPix3x=data.formaPagamento.toLowerCase().includes('pix parcelado')||data.formaPagamento.includes('3x');
   if((data.status==='pago_pix'||data.status==='pago_cartao')&&!isPix3x) data.valorPago=data.valorFinal;
   try{
     if(id) await db.collection('cursos').doc(cursoAtivoId).collection('inscricoes').doc(id).update(data);
@@ -1074,24 +1074,69 @@ function renderConfig(){
           <div class="field full"><label>Nome do titular</label><input id="cf-pixnome" value="${c.nomePix||''}" placeholder="Felipe Cerqueira"/></div>
         </div>
       </div>
-      <div class="config-sec"><h2>Valores — Normal</h2>
+      <!-- ── PIX À VISTA ── -->
+      <div class="config-sec">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:11px;border-bottom:1px solid var(--border)">
+          <h2 style="margin:0;padding:0;border:none">PIX à vista</h2>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px">
+            <input type="checkbox" id="cf-avista-on" ${c.avistaOn!==false?'checked':''} style="accent-color:var(--accent);width:16px;height:16px"> Habilitado
+          </label>
+        </div>
         <div class="form-grid">
-          <div class="field"><label>À vista PIX (R$)</label><input id="cf-v-avista" type="number" value="${c.vAvista||''}"/></div>
-          <div class="field"><label>3x PIX — Total (R$)</label><input id="cf-v-pix3x" type="number" value="${c.vPix3x||''}"/></div>
-          <div class="field"><label>PIX Parcela 1 (R$)</label><input id="cf-pix-p1" type="number" value="${c.pixP1||''}"/></div>
-          <div class="field"><label>PIX Parcela 2 (R$)</label><input id="cf-pix-p2" type="number" value="${c.pixP2||''}"/></div>
-          <div class="field"><label>PIX Parcela 3 (R$)</label><input id="cf-pix-p3" type="number" value="${c.pixP3||''}"/></div>
-          <div class="field"><label>Cartão 10x — Total (R$)</label><input id="cf-v-cartao" type="number" value="${c.vCartao||''}"/></div>
-          <div class="field full"><label>Link cartão normal</label><input id="cf-link-cartao" value="${c.linkCartao||''}" placeholder="https://hotmart.com/..."/></div>
+          <div class="field"><label>Valor normal (R$)</label><input id="cf-v-avista" type="number" value="${c.vAvista||''}"/></div>
+          <div class="field"><label>Valor fidelidade (R$)</label><input id="cf-f-avista" type="number" value="${c.fAvista||''}"/></div>
         </div>
       </div>
-      <div class="config-sec"><h2>Valores — Fidelidade (5% off)</h2>
-        <p style="font-size:13px;color:var(--text2);margin-bottom:16px">Assinantes OrtoFlix ou alunos 2025/2026</p>
+
+      <!-- ── PIX PARCELADO ── -->
+      <div class="config-sec">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:11px;border-bottom:1px solid var(--border)">
+          <h2 style="margin:0;padding:0;border:none">PIX Parcelado</h2>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px">
+            <input type="checkbox" id="cf-pixparc-on" ${c.pixParcOn?'checked':''} style="accent-color:var(--accent);width:16px;height:16px"> Habilitado
+          </label>
+        </div>
         <div class="form-grid">
-          <div class="field"><label>À vista PIX fidelidade (R$)</label><input id="cf-f-avista" type="number" value="${c.fAvista||''}"/></div>
-          <div class="field"><label>3x PIX fidelidade — Total (R$)</label><input id="cf-f-pix3x" type="number" value="${c.fPix3x||''}"/></div>
-          <div class="field"><label>Cartão fidelidade 10x — Total (R$)</label><input id="cf-f-cartao" type="number" value="${c.fCartao||''}"/></div>
-          <div class="field full"><label>Link cartão fidelidade</label><input id="cf-link-cartao-f" value="${c.linkCartaoFid||''}" placeholder="https://hotmart.com/..."/></div>
+          <div class="field"><label>Nº de parcelas</label><input id="cf-pix-n" type="number" min="2" max="12" value="${c.pixN||3}" placeholder="3"/></div>
+          <div class="field"><label>Valor total normal (R$)</label><input id="cf-v-pix3x" type="number" value="${c.vPix3x||''}"/></div>
+          <div class="field"><label>Valor total fidelidade (R$)</label><input id="cf-f-pix3x" type="number" value="${c.fPix3x||''}"/></div>
+          <div class="field"><label>Parcela 1 (R$)</label><input id="cf-pix-p1" type="number" value="${c.pixP1||''}"/></div>
+          <div class="field"><label>Parcela 2 (R$)</label><input id="cf-pix-p2" type="number" value="${c.pixP2||''}"/></div>
+          <div class="field"><label>Parcela 3 (R$)</label><input id="cf-pix-p3" type="number" value="${c.pixP3||''}"/></div>
+        </div>
+      </div>
+
+      <!-- ── CARTÃO OPÇÃO 1: mesmo valor do pix à vista ── -->
+      <div class="config-sec">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:11px;border-bottom:1px solid var(--border)">
+          <h2 style="margin:0;padding:0;border:none">Cartão de crédito (opção 1)</h2>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px">
+            <input type="checkbox" id="cf-cartao1-on" ${c.cartao1On?'checked':''} style="accent-color:var(--accent);width:16px;height:16px"> Habilitado
+          </label>
+        </div>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:14px">Mesmo valor do PIX à vista, parcelado no cartão</p>
+        <div class="form-grid">
+          <div class="field"><label>Nº máximo de parcelas</label><input id="cf-cartao1-n" type="number" min="1" max="18" value="${c.cartao1N||3}" placeholder="3"/></div>
+          <div class="field"><label>Link de pagamento</label><input id="cf-cartao1-link" value="${c.cartao1Link||''}" placeholder="https://hotmart.com/..."/></div>
+          <div class="field"><label>Link fidelidade</label><input id="cf-cartao1-linkf" value="${c.cartao1LinkF||''}" placeholder="https://hotmart.com/..."/></div>
+        </div>
+      </div>
+
+      <!-- ── CARTÃO OPÇÃO 2: valor diferenciado ── -->
+      <div class="config-sec">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:11px;border-bottom:1px solid var(--border)">
+          <h2 style="margin:0;padding:0;border:none">Cartão de crédito (opção 2)</h2>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px">
+            <input type="checkbox" id="cf-cartao2-on" ${c.cartao2On!==false?'checked':''} style="accent-color:var(--accent);width:16px;height:16px"> Habilitado
+          </label>
+        </div>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:14px">Valor diferenciado, parcelado no cartão</p>
+        <div class="form-grid">
+          <div class="field"><label>Nº máximo de parcelas</label><input id="cf-cartao2-n" type="number" min="1" max="18" value="${c.cartao2N||10}" placeholder="10"/></div>
+          <div class="field"><label>Valor total normal (R$)</label><input id="cf-v-cartao" type="number" value="${c.vCartao||''}"/></div>
+          <div class="field"><label>Valor total fidelidade (R$)</label><input id="cf-f-cartao" type="number" value="${c.fCartao||''}"/></div>
+          <div class="field"><label>Link de pagamento</label><input id="cf-link-cartao" value="${c.linkCartao||''}" placeholder="https://hotmart.com/..."/></div>
+          <div class="field full"><label>Link fidelidade</label><input id="cf-link-cartao-f" value="${c.linkCartaoFid||''}" placeholder="https://hotmart.com/..."/></div>
         </div>
       </div>
       <div class="config-sec"><h2>Regras</h2>
@@ -1123,16 +1168,29 @@ async function saveConfig(){
     descricao:document.getElementById('cf-desc').value.trim(),
     chavePix:document.getElementById('cf-pix').value.trim(),
     nomePix:document.getElementById('cf-pixnome').value.trim(),
+    // PIX à vista
+    avistaOn: document.getElementById('cf-avista-on').checked,
     vAvista:parseFloat(document.getElementById('cf-v-avista').value)||0,
+    fAvista:parseFloat(document.getElementById('cf-f-avista').value)||0,
+    // PIX parcelado
+    pixParcOn: document.getElementById('cf-pixparc-on').checked,
+    pixN: parseInt(document.getElementById('cf-pix-n').value)||3,
     vPix3x:parseFloat(document.getElementById('cf-v-pix3x').value)||0,
+    fPix3x:parseFloat(document.getElementById('cf-f-pix3x').value)||0,
     pixP1:parseFloat(document.getElementById('cf-pix-p1').value)||0,
     pixP2:parseFloat(document.getElementById('cf-pix-p2').value)||0,
     pixP3:parseFloat(document.getElementById('cf-pix-p3').value)||0,
+    // Cartão opção 1
+    cartao1On: document.getElementById('cf-cartao1-on').checked,
+    cartao1N: parseInt(document.getElementById('cf-cartao1-n').value)||3,
+    cartao1Link: document.getElementById('cf-cartao1-link').value.trim(),
+    cartao1LinkF: document.getElementById('cf-cartao1-linkf').value.trim(),
+    // Cartão opção 2
+    cartao2On: document.getElementById('cf-cartao2-on').checked,
+    cartao2N: parseInt(document.getElementById('cf-cartao2-n').value)||10,
     vCartao:parseFloat(document.getElementById('cf-v-cartao').value)||0,
-    linkCartao:document.getElementById('cf-link-cartao').value.trim(),
-    fAvista:parseFloat(document.getElementById('cf-f-avista').value)||0,
-    fPix3x:parseFloat(document.getElementById('cf-f-pix3x').value)||0,
     fCartao:parseFloat(document.getElementById('cf-f-cartao').value)||0,
+    linkCartao:document.getElementById('cf-link-cartao').value.trim(),
     linkCartaoFid:document.getElementById('cf-link-cartao-f').value.trim(),
     regrasPix:document.getElementById('cf-regras-pix').value.trim(),
     regrasCancel:document.getElementById('cf-regras-cancel').value.trim(),
@@ -1166,7 +1224,20 @@ function showPublicPage(){
   });
 }
 
-function getValor(){ const c=pubCurso||{}, fid=pubFidelidade==='sim'; if(pubPgto==='avista') return parseFloat(fid?c.fAvista:c.vAvista)||0; if(pubPgto==='pix3x') return parseFloat(fid?c.fPix3x:c.vPix3x)||0; if(pubPgto==='cartao') return parseFloat(fid?c.fCartao:c.vCartao)||0; return 0; }
+function getValor(){
+  const c=pubCurso||{}, fid=pubFidelidade==='sim';
+  if(pubPgto==='avista')   return parseFloat(fid?c.fAvista:c.vAvista)||0;
+  if(pubPgto==='pixparc')  return parseFloat(fid?c.fPix3x:c.vPix3x)||0;
+  if(pubPgto==='cartao1')  return parseFloat(fid?c.fAvista:c.vAvista)||0; // mesmo valor do pix à vista
+  if(pubPgto==='cartao2')  return parseFloat(fid?c.fCartao:c.vCartao)||0;
+  return 0;
+}
+function getLinkCartao(){
+  const c=pubCurso||{}, fid=pubFidelidade==='sim';
+  if(pubPgto==='cartao1') return fid?(c.cartao1LinkF||c.cartao1Link):c.cartao1Link;
+  if(pubPgto==='cartao2') return fid?c.linkCartaoFid:c.linkCartao;
+  return '';
+}
 
 function renderPublicForm(){
   const c=pubCurso||{};
@@ -1183,13 +1254,14 @@ function renderPublicForm(){
     <div class="pub-form">
       <h2 style="margin-bottom:14px">Tabela de Valores</h2>
       <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:22px">
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;margin-bottom:10px">
-          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px"><div style="font-size:10px;color:var(--text2);margin-bottom:4px;text-transform:uppercase">À vista PIX</div><div style="font-weight:700;font-family:'Syne',sans-serif;color:var(--green);font-size:15px">${fmtBRL(c.vAvista)}</div></div>
-          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px"><div style="font-size:10px;color:var(--text2);margin-bottom:4px;text-transform:uppercase">3x no PIX</div><div style="font-weight:700;font-family:'Syne',sans-serif;color:var(--blue);font-size:15px">${fmtBRL(c.vPix3x)}</div></div>
-          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px"><div style="font-size:10px;color:var(--text2);margin-bottom:4px;text-transform:uppercase">Cartão 10x</div><div style="font-weight:700;font-family:'Syne',sans-serif;color:var(--accent);font-size:15px">${fmtBRL(c.vCartao)}</div></div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px">
+          ${c.avistaOn!==false?`<div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 14px"><span style="font-size:13px;font-weight:600">PIX à vista</span><span style="font-weight:700;font-family:'Syne',sans-serif;color:var(--green);font-size:15px">${fmtBRL(c.vAvista)}</span></div>`:''}
+          ${c.pixParcOn?`<div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 14px"><span style="font-size:13px;font-weight:600">PIX parcelado (${c.pixN||3}x)</span><span style="font-weight:700;font-family:'Syne',sans-serif;color:var(--blue);font-size:15px">${fmtBRL(c.vPix3x)}</span></div>`:''}
+          ${c.cartao1On?`<div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 14px"><span style="font-size:13px;font-weight:600">Cartão de crédito (até ${c.cartao1N||3}x)</span><span style="font-weight:700;font-family:'Syne',sans-serif;color:var(--teal);font-size:15px">${fmtBRL(c.vAvista)}</span></div>`:''}
+          ${c.cartao2On!==false?`<div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 14px"><span style="font-size:13px;font-weight:600">Cartão de crédito (até ${c.cartao2N||10}x)</span><span style="font-weight:700;font-family:'Syne',sans-serif;color:var(--accent);font-size:15px">${fmtBRL(c.vCartao)}</span></div>`:''}
         </div>
         <div style="padding:10px;background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.35);border-radius:8px;font-size:13px;color:#e2d9ff">
-          🤝 <strong>Plano Fidelidade (5% off):</strong> À vista/3x PIX ${fmtBRL(c.fAvista)} · Cartão 10x ${fmtBRL(c.fCartao)}<br>
+          🤝 <strong>Plano Fidelidade (5% off):</strong>${c.avistaOn!==false?` PIX à vista ${fmtBRL(c.fAvista)}`:''}${c.pixParcOn?` · PIX ${c.pixN||3}x ${fmtBRL(c.fPix3x)}`:''}${c.cartao2On!==false?` · Cartão ${c.cartao2N||10}x ${fmtBRL(c.fCartao)}`:''}<br>
           <em style="font-size:12px;font-weight:400;opacity:.85">Exclusivo para participantes dos cursos 2025/2026 do Prof. Felipe Cerqueira ou assinantes da OrtoFlix.</em>
         </div>
       </div>
@@ -1211,9 +1283,10 @@ function renderPublicForm(){
         </div>
         <div class="field full"><label>Forma de pagamento</label>
           <div class="radio-group" id="radio-pgto">
-            <label class="radio-opt selected" onclick="selectPgtoPub(this,'avista')"><input type="radio" name="pgto" style="display:none" checked> PIX à vista</label>
-            <label class="radio-opt" onclick="selectPgtoPub(this,'pix3x')"><input type="radio" name="pgto" style="display:none"> 3x no PIX</label>
-            <label class="radio-opt" onclick="selectPgtoPub(this,'cartao')"><input type="radio" name="pgto" style="display:none"> Cartão (até 10x)</label>
+            ${c.avistaOn!==false?`<label class="radio-opt selected" onclick="selectPgtoPub(this,'avista')"><input type="radio" name="pgto" style="display:none" checked> PIX à vista</label>`:''}
+            ${c.pixParcOn?`<label class="radio-opt" onclick="selectPgtoPub(this,'pixparc')"><input type="radio" name="pgto" style="display:none"> PIX parcelado (${c.pixN||3}x)</label>`:''}
+            ${c.cartao1On?`<label class="radio-opt" onclick="selectPgtoPub(this,'cartao1')"><input type="radio" name="pgto" style="display:none"> Cartão de crédito (até ${c.cartao1N||3}x)</label>`:''}
+            ${c.cartao2On!==false?`<label class="radio-opt" onclick="selectPgtoPub(this,'cartao2')"><input type="radio" name="pgto" style="display:none"> Cartão de crédito (até ${c.cartao2N||10}x)</label>`:''}
           </div>
           <div id="valor-preview" style="margin-top:10px;padding:10px 14px;background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.2);border-radius:8px;font-size:15px;font-weight:700;color:var(--accent)">💰 Valor: ${fmtBRL(getValor())}</div>
         </div>
@@ -1243,7 +1316,7 @@ function renderPublicForm(){
   </div>`;
 }
 
-function selectPgtoPub(el,val){ pubPgto=val; document.querySelectorAll('#radio-pgto .radio-opt').forEach(r=>r.classList.remove('selected')); el.classList.add('selected'); document.getElementById('bloco-pix3x').style.display=val==='pix3x'?'block':'none'; document.getElementById('valor-preview').innerHTML=`💰 Valor: ${fmtBRL(getValor())}`; }
+function selectPgtoPub(el,val){ pubPgto=val; document.querySelectorAll('#radio-pgto .radio-opt').forEach(r=>r.classList.remove('selected')); el.classList.add('selected'); const bp=document.getElementById('bloco-pix3x'); if(bp) bp.style.display=val==='pixparc'?'block':'none'; document.getElementById('valor-preview').innerHTML=`💰 Valor: ${fmtBRL(getValor())}`; }
 function selectFid(el,val){ pubFidelidade=val; document.querySelectorAll('#radio-fid .radio-opt').forEach(r=>r.classList.remove('selected')); el.classList.add('selected'); const a=document.getElementById('fid-aviso'); if(a) a.style.display=val==='sim'?'block':'none'; document.getElementById('valor-preview').innerHTML=`💰 Valor: ${fmtBRL(getValor())}`; }
 
 async function submitInscricao(){
@@ -1253,7 +1326,13 @@ async function submitInscricao(){
   if(pubPgto==='pix3x'&&!pubAceitePix){ toast('Aceite as regras do parcelamento no PIX','err'); return; }
   if(!pubAceiteCancel){ toast('Aceite a política de cancelamento','err'); return; }
   const btn=document.getElementById('pub-submit-btn'); btn.textContent='Enviando...'; btn.disabled=true;
-  const pgtoLabel={avista:'PIX à vista',pix3x:'3x no PIX',cartao:'Cartão (até 10x)'}[pubPgto];
+  const c2=pubCurso||{};
+  const pgtoLabel={
+    avista:'PIX à vista',
+    pixparc:`PIX parcelado (${c2.pixN||3}x)`,
+    cartao1:`Cartão de crédito (até ${c2.cartao1N||3}x)`,
+    cartao2:`Cartão de crédito (até ${c2.cartao2N||10}x)`
+  }[pubPgto]||pubPgto;
   const valorFinal=getValor();
   try{
     const ref=await db.collection('cursos').doc(pubCursoId).collection('inscricoes').add({
@@ -1275,8 +1354,8 @@ async function submitInscricao(){
 }
 
 function renderPublicPagamento(){
-  const c=pubCurso||{}, fid=pubFidelidade==='sim', isCartao=pubPgto==='cartao', isPix3x=pubPgto==='pix3x';
-  const linkCartao=fid?c.linkCartaoFid:c.linkCartao, valorFinal=getValor();
+  const c=pubCurso||{}, fid=pubFidelidade==='sim', isCartao=pubPgto==='cartao1'||pubPgto==='cartao2', isPix3x=pubPgto==='pixparc';
+  const linkCartao=getLinkCartao(), valorFinal=getValor();
   document.getElementById('public-page').innerHTML=`
   <div class="confirm-card fade-in">
     <div class="confirm-ico">✅</div>
