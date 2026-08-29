@@ -3,25 +3,360 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Treinamento em Exercícios Terapêuticos — Inscrições</title>
-<meta name="description" content="Faça sua inscrição no Treinamento em Exercícios Terapêuticos. 29 e 30 de agosto de 2026 · Aracaju, SE. Dr. Felipe Cerqueira · OrtoFlix">
-<meta property="og:title" content="🎓 Treinamento em Exercícios Terapêuticos — Inscrições abertas!">
-<meta property="og:description" content="📅 29 e 30 de agosto de 2026 · 📍 Aracaju, SE · PIX à vista R$400 · Cartão 10x R$450 · Dr. Felipe Cerqueira · OrtoFlix">
-<meta property="og:url" content="https://flcerqueira-boop.github.io/GestorDeCursos/inscricao">
+<title>Inscrição — Gestor de Cursos</title>
+<meta name="description" content="Faça sua inscrição no curso.">
+<meta property="og:title" content="Inscrição no curso">
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="OrtoFlix Cursos">
-<meta name="twitter:card" content="summary">
-<script>
-  window.location.replace("https://flcerqueira-boop.github.io/GestorDeCursos/#/inscricao");
-</script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <style>
-  body{font-family:sans-serif;background:#0d1117;color:#e2e8f0;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;flex-direction:column;gap:16px}
-  .spinner{width:36px;height:36px;border:3px solid #2d3748;border-top-color:#f97316;border-radius:50%;animation:spin .7s linear infinite}
-  @keyframes spin{to{transform:rotate(360deg)}}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0d1117;--bg2:#161b22;--bg3:#1f2937;--border:#2d3748;--text:#e2e8f0;--text2:#94a3b8;--accent:#f97316;--green:#10b981;--blue:#3b82f6;--yellow:#f59e0b;--purple:#8b5cf6;--teal:#14b8a6;--red:#ef4444;--r:10px}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+h1,h2,h3{font-family:'Syne',sans-serif}
+input,select,textarea,button{font-family:'DM Sans',sans-serif}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes spin{to{transform:rotate(360deg)}}
+.fade-in{animation:fadeIn .2s ease}
+#loading{min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px}
+.spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+#public-page{min-height:100vh;background:var(--bg);display:flex;align-items:flex-start;justify-content:center;padding:32px 16px;background-image:radial-gradient(ellipse at 20% 0%,rgba(249,115,22,.08) 0%,transparent 50%)}
+.pub-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;width:100%;max-width:580px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.5)}
+.pub-hdr{padding:30px;background:linear-gradient(135deg,rgba(249,115,22,.1),rgba(59,130,246,.06));border-bottom:1px solid var(--border);text-align:center}
+.pub-hdr h1{font-size:22px;color:var(--text);margin-bottom:8px}
+.pub-desc{color:var(--text2);font-size:14px;margin-bottom:14px}
+.pub-meta{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;font-size:13px;color:var(--text2)}
+.pub-form{padding:26px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.field{display:flex;flex-direction:column;gap:5px}
+.field.full{grid-column:1/-1}
+.field label{font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.03em}
+.field input,.field select,.field textarea{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:8px;font-size:14px;outline:none;transition:border-color .15s}
+.field input:focus,.field select:focus{border-color:var(--accent)}
+select option{background:var(--bg3)}
+.radio-group{display:flex;gap:10px;flex-wrap:wrap;padding:2px 0}
+.radio-opt{display:flex;align-items:center;gap:7px;cursor:pointer;font-size:14px;color:var(--text);padding:8px 13px;border:1px solid var(--border);border-radius:8px;transition:all .15s}
+.radio-opt.selected{border-color:var(--accent);background:rgba(249,115,22,.08);color:var(--accent)}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:10px 18px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:all .15s;border:none}
+.btn-primary{background:var(--accent);color:#fff;width:100%;justify-content:center;padding:14px;font-size:16px;margin-top:6px}
+.btn-primary:hover{background:#ea580c}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed}
+.btn-green{background:var(--green);color:#fff;width:100%;justify-content:center;padding:14px;font-size:16px;margin-top:0}
+.toast{position:fixed;bottom:24px;right:12px;left:12px;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:12px 18px;border-radius:10px;font-size:14px;z-index:9999;text-align:center}
+.toast.err{border-color:rgba(239,68,68,.4);color:var(--red)}
+.pix-box{background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.2);border-radius:var(--r);padding:18px;margin:16px 0;text-align:left}
+.cartao-box{background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.2);border-radius:var(--r);padding:18px;margin:16px 0}
+.confirm-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;width:100%;max-width:520px;padding:38px;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,.5)}
+.aviso-box{background:rgba(249,115,22,.06);border:1px solid rgba(249,115,22,.2);border-radius:var(--r);padding:20px;margin:20px 0;text-align:left}
+.pix-key-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.pix-key-row code{flex:1;background:var(--bg3);padding:8px 12px;border-radius:6px;font-size:13px;word-break:break-all}
+.ico-btn{padding:6px;border-radius:6px;border:1px solid var(--border);background:none;cursor:pointer;color:var(--text2);font-size:14px}
+@media(max-width:600px){.form-grid{grid-template-columns:1fr}.field.full{grid-column:1}#public-page{padding:16px}}
 </style>
 </head>
 <body>
-  <div class="spinner"></div>
-  <p>Carregando inscrição...</p>
+<div id="loading"><div class="spinner"></div><p style="color:var(--text2)">Carregando...</p></div>
+<div id="public-page" style="display:none"></div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyAq9ix8gVMn8lr7xtx49yUCDDI4fnpUuiI",
+  authDomain: "cursomanager-53218.firebaseapp.com",
+  projectId: "cursomanager-53218",
+  storageBucket: "cursomanager-53218.firebasestorage.app",
+  messagingSenderId: "250558746109",
+  appId: "1:250558746109:web:ed58b1388c7940103ddd94"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+emailjs.init('FjaSDa-O3hhpVQ2mJ');
+const EJ_SERVICE = 'service_pdplefb';
+const EJ_TMPL_INSC = 'template_803p8n1';
+const EJ_TMPL_PGTO = 'template_ohy2woh';
+
+function fmtBRL(v){ return 'R$ '+(parseFloat(v)||0).toFixed(2).replace('.',',') }
+function toast(msg, type='ok'){
+  document.querySelectorAll('.toast').forEach(t=>t.remove());
+  const t=document.createElement('div'); t.className=`toast ${type}`; t.textContent=msg;
+  document.body.appendChild(t); setTimeout(()=>t.remove(),3500);
+}
+
+// Get course ID from URL — supports ?id=ID or hash #/inscricao/ID or path /inscricao/ID
+function getCursoId(){
+  const params = new URLSearchParams(window.location.search);
+  if(params.get('id')) return params.get('id');
+  const hash = window.location.hash;
+  if(hash.startsWith('#/inscricao/')) return hash.replace('#/inscricao/','');
+  const path = window.location.pathname;
+  const m = path.match(/inscricao\/([^\/]+)/);
+  if(m) return m[1];
+  return null;
+}
+
+let pubCurso = null;
+let pubCursoId = getCursoId();
+let pubPgto = 'avista';
+let pubFidelidade = 'nao';
+let pubNome = '';
+let pubInscId = '';
+let pubAceitePix = false;
+let pubAceiteCancel = false;
+
+function getValor(){
+  const c=pubCurso||{}, fid=pubFidelidade==='sim';
+  if(pubPgto==='avista')  return parseFloat(fid?c.fAvista:c.vAvista)||0;
+  if(pubPgto==='pixparc') return parseFloat(fid?c.fPix3x:c.vPix3x)||0;
+  if(pubPgto==='cartao1') return parseFloat(fid?c.fAvista:c.vAvista)||0;
+  if(pubPgto==='cartao2') return parseFloat(fid?c.fCartao:c.vCartao)||0;
+  return 0;
+}
+function getLinkCartao(){
+  const c=pubCurso||{}, fid=pubFidelidade==='sim';
+  if(pubPgto==='cartao1') return fid?(c.cartao1LinkF||c.cartao1Link):c.cartao1Link;
+  if(pubPgto==='cartao2') return fid?c.linkCartaoFid:c.linkCartao;
+  return '';
+}
+
+window.onload = function(){
+  if(!pubCursoId){
+    document.getElementById('loading').innerHTML='<div style="text-align:center;padding:40px"><div style="font-size:64px;margin-bottom:16px">🔗</div><h2 style="font-family:Syne,sans-serif;margin-bottom:8px">Link inválido</h2><p style="color:#94a3b8">Verifique o link com o organizador.</p></div>';
+    return;
+  }
+  db.collection('cursos').doc(pubCursoId).get().then(snap=>{
+    document.getElementById('loading').style.display='none';
+    if(!snap.exists){
+      document.getElementById('public-page').style.display='flex';
+      document.getElementById('public-page').innerHTML='<div class="confirm-card"><div style="font-size:64px;margin-bottom:16px">🔗</div><h1>Curso não encontrado</h1><p style="color:#94a3b8;margin-top:8px">Verifique o link com o organizador.</p></div>';
+      return;
+    }
+    pubCurso = {id:snap.id,...snap.data()};
+    if(pubCurso.status==='encerrado'){
+      document.getElementById('public-page').style.display='flex';
+      document.getElementById('public-page').innerHTML='<div class="confirm-card"><div style="font-size:64px;margin-bottom:16px">🔒</div><h1>Inscrições encerradas</h1><p style="color:#94a3b8;margin-top:8px">Dúvidas? <a href="https://instagram.com/fccursos" style="color:#f97316">@fccursos</a></p></div>';
+      return;
+    }
+    renderForm();
+  }).catch(e=>{
+    document.getElementById('loading').innerHTML='<p style="color:#ef4444">Erro ao carregar. Tente novamente.</p>';
+  });
+};
+
+function renderForm(){
+  const c=pubCurso||{};
+  const regrasPix=(c.regrasPix||'').split('\n').filter(Boolean);
+  const regrasCancel=(c.regrasCancel||'').split('\n').filter(Boolean);
+  document.getElementById('public-page').style.display='flex';
+  document.getElementById('public-page').innerHTML=`
+  <div class="pub-card fade-in">
+    <div class="pub-hdr">
+      <span style="font-size:40px;margin-bottom:10px;display:block">🎓</span>
+      <h1>${c.nome||'Inscrição'}</h1>
+      ${c.descricao?`<p class="pub-desc">${c.descricao}</p>`:''}
+      <div class="pub-meta">${c.data?`<span>📅 ${c.data}</span>`:''} ${c.local?`<span>📍 ${c.local}</span>`:''}</div>
+    </div>
+    <div class="pub-form">
+      <h2 style="margin-bottom:14px">Tabela de Valores</h2>
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:22px">
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px">
+          ${c.avistaOn!==false?`<div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 14px"><span style="font-size:13px;font-weight:600">PIX à vista</span><span style="font-weight:700;font-family:'Syne',sans-serif;color:var(--green);font-size:15px">${fmtBRL(c.vAvista)}</span></div>`:''}
+          ${c.pixParcOn?`<div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 14px"><span style="font-size:13px;font-weight:600">PIX parcelado (${c.pixN||3}x)</span><span style="font-weight:700;font-family:'Syne',sans-serif;color:var(--blue);font-size:15px">${fmtBRL(c.vPix3x)}</span></div>`:''}
+          ${c.cartao1On?`<div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 14px"><span style="font-size:13px;font-weight:600">Cartão de crédito (até ${c.cartao1N||3}x)</span><span style="font-weight:700;font-family:'Syne',sans-serif;color:var(--teal);font-size:15px">${fmtBRL(c.vAvista)}</span></div>`:''}
+          ${c.cartao2On!==false?`<div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 14px"><span style="font-size:13px;font-weight:600">Cartão de crédito (até ${c.cartao2N||10}x)</span><span style="font-weight:700;font-family:'Syne',sans-serif;color:var(--accent);font-size:15px">${fmtBRL(c.vCartao)}</span></div>`:''}
+        </div>
+        <div style="padding:10px;background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.35);border-radius:8px;font-size:13px;color:#e2d9ff">
+          🤝 <strong>Plano Fidelidade (5% off):</strong>${c.avistaOn!==false?` PIX à vista ${fmtBRL(c.fAvista)}`:''}${c.pixParcOn?` · PIX ${c.pixN||3}x ${fmtBRL(c.fPix3x)}`:''}${c.cartao2On!==false?` · Cartão ${c.cartao2N||10}x ${fmtBRL(c.fCartao)}`:''}<br>
+          <em style="font-size:12px;font-weight:400;opacity:.85">Exclusivo para participantes dos cursos 2025/2026 do Prof. Felipe Cerqueira ou assinantes da OrtoFlix.</em>
+        </div>
+      </div>
+
+      <h2 style="margin-bottom:18px">Formulário de Inscrição</h2>
+      <div class="form-grid">
+        <div class="field full"><label>Nome completo *</label><input id="pf-nome" placeholder="Seu nome completo"/></div>
+        <div class="field"><label>Email *</label><input id="pf-email" type="email" placeholder="seu@email.com"/></div>
+        <div class="field"><label>Telefone / WhatsApp *</label><input id="pf-tel" placeholder="(79) 99999-9999"/></div>
+        <div class="field"><label>Instagram</label><input id="pf-insta" placeholder="@seuusuario"/></div>
+        <div class="field"><label>Você é:</label><select id="pf-perfil"><option value="formado">Fisioterapeuta formado</option><option value="estudante">Estudante</option></select></div>
+        <div class="field"><label>Faculdade</label><input id="pf-fac" placeholder="Nome da faculdade"/></div>
+        <div class="field full"><label>Plano Fidelidade</label>
+          <div class="radio-group" id="radio-fid">
+            <label class="radio-opt selected" onclick="selectFid(this,'nao')"><input type="radio" name="fid" style="display:none" checked> Não se aplica</label>
+            <label class="radio-opt" onclick="selectFid(this,'sim')"><input type="radio" name="fid" style="display:none"> 🤝 OrtoFlix ou curso 2025/2026</label>
+          </div>
+          <p id="fid-aviso" style="display:none;font-size:12px;color:#e2d9ff;margin-top:6px;padding:8px 12px;background:rgba(139,92,246,.15);border-radius:6px;border:1px solid rgba(139,92,246,.35)">⚠️ Será verificado manualmente. Caso não comprovado, a inscrição não será validada.</p>
+        </div>
+        <div class="field full"><label>Forma de pagamento</label>
+          <div class="radio-group" id="radio-pgto">
+            ${c.avistaOn!==false?`<label class="radio-opt selected" onclick="selectPgto(this,'avista')"><input type="radio" name="pgto" style="display:none" checked> PIX à vista</label>`:''}
+            ${c.pixParcOn?`<label class="radio-opt" onclick="selectPgto(this,'pixparc')"><input type="radio" name="pgto" style="display:none"> PIX parcelado (${c.pixN||3}x)</label>`:''}
+            ${c.cartao1On?`<label class="radio-opt" onclick="selectPgto(this,'cartao1')"><input type="radio" name="pgto" style="display:none"> Cartão de crédito (até ${c.cartao1N||3}x)</label>`:''}
+            ${c.cartao2On!==false?`<label class="radio-opt" onclick="selectPgto(this,'cartao2')"><input type="radio" name="pgto" style="display:none"> Cartão de crédito (até ${c.cartao2N||10}x)</label>`:''}
+          </div>
+          <div id="valor-preview" style="margin-top:10px;padding:10px 14px;background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.2);border-radius:8px;font-size:15px;font-weight:700;color:var(--accent)">💰 Valor: ${fmtBRL(getValor())}</div>
+        </div>
+      </div>
+
+      <div id="bloco-pix3x" style="display:none;margin:16px 0;background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.2);border-radius:10px;padding:16px">
+        <p style="font-weight:700;font-size:14px;margin-bottom:10px">⚠️ Regras do parcelamento no PIX</p>
+        ${regrasPix.map(r=>`<p style="font-size:13px;color:var(--text2);margin-bottom:4px">${r}</p>`).join('')}
+        <label style="display:flex;align-items:flex-start;gap:8px;margin-top:12px;cursor:pointer;font-size:13px">
+          <input type="checkbox" id="aceite-pix" onchange="pubAceitePix=this.checked" style="accent-color:var(--accent);width:16px;height:16px;margin-top:2px;flex-shrink:0">
+          <span>Estou ciente e aceito as condições do parcelamento no PIX.</span>
+        </label>
+      </div>
+
+      <div style="margin:16px 0;background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);border-radius:10px;padding:16px">
+        <p style="font-weight:700;font-size:14px;margin-bottom:10px">📋 Política de Cancelamento</p>
+        ${regrasCancel.map(r=>`<p style="font-size:13px;color:var(--text2);margin-bottom:4px">${r}</p>`).join('')}
+        <label style="display:flex;align-items:flex-start;gap:8px;margin-top:12px;cursor:pointer;font-size:13px">
+          <input type="checkbox" id="aceite-cancel" onchange="pubAceiteCancel=this.checked" style="accent-color:var(--accent);width:16px;height:16px;margin-top:2px;flex-shrink:0">
+          <span>Estou ciente e aceito a política de cancelamento.</span>
+        </label>
+      </div>
+
+      <div style="background:var(--bg3);border-radius:8px;padding:12px 14px;font-size:13px;color:var(--text2);margin-bottom:16px">⚠️ A inscrição só terá validade mediante pagamento em até <strong>48 horas</strong>.</div>
+      <button class="btn btn-primary" id="pub-submit-btn" onclick="submitInscricao()">Confirmar Inscrição</button>
+    </div>
+  </div>`;
+}
+
+function selectPgto(el,val){
+  pubPgto=val;
+  document.querySelectorAll('#radio-pgto .radio-opt').forEach(r=>r.classList.remove('selected'));
+  el.classList.add('selected');
+  const bp=document.getElementById('bloco-pix3x');
+  if(bp) bp.style.display=val==='pixparc'?'block':'none';
+  document.getElementById('valor-preview').innerHTML=`💰 Valor: ${fmtBRL(getValor())}`;
+}
+
+function selectFid(el,val){
+  pubFidelidade=val;
+  document.querySelectorAll('#radio-fid .radio-opt').forEach(r=>r.classList.remove('selected'));
+  el.classList.add('selected');
+  const a=document.getElementById('fid-aviso'); if(a) a.style.display=val==='sim'?'block':'none';
+  document.getElementById('valor-preview').innerHTML=`💰 Valor: ${fmtBRL(getValor())}`;
+}
+
+async function submitInscricao(){
+  const nome=document.getElementById('pf-nome').value.trim();
+  const email=document.getElementById('pf-email').value.trim();
+  const tel=document.getElementById('pf-tel').value.trim();
+  if(!nome||!email||!tel){ toast('Preencha nome, email e telefone','err'); return; }
+  if(!/\S+@\S+\.\S+/.test(email)){ toast('Email inválido','err'); return; }
+  if(pubPgto==='pixparc'&&!pubAceitePix){ toast('Aceite as regras do parcelamento no PIX','err'); return; }
+  if(!pubAceiteCancel){ toast('Aceite a política de cancelamento','err'); return; }
+  const btn=document.getElementById('pub-submit-btn'); btn.textContent='Enviando...'; btn.disabled=true;
+  const c2=pubCurso||{};
+  const pgtoLabel={avista:'PIX à vista',pixparc:`PIX parcelado (${c2.pixN||3}x)`,cartao1:`Cartão de crédito (até ${c2.cartao1N||3}x)`,cartao2:`Cartão de crédito (até ${c2.cartao2N||10}x)`}[pubPgto]||pubPgto;
+  const valorFinal=getValor();
+  try{
+    const ref=await db.collection('cursos').doc(pubCursoId).collection('inscricoes').add({
+      nome,email,telefone:tel,
+      instagram:document.getElementById('pf-insta').value.trim(),
+      perfil:document.getElementById('pf-perfil').value,
+      faculdade:document.getElementById('pf-fac').value.trim(),
+      formaPagamento:pgtoLabel,fidelidade:pubFidelidade,valorFinal,
+      status:'aguard_confirm',criadoEm:firebase.firestore.FieldValue.serverTimestamp()
+    });
+    pubInscId=ref.id; pubNome=nome;
+    await db.collection('cursos').doc(pubCursoId).collection('notificacoes').add({
+      tipo:'nova',nomeAluno:nome,detalhe:`${pgtoLabel} · ${fmtBRL(valorFinal)}${pubFidelidade==='sim'?' · 🤝 Fidelidade':''}`,
+      inscricaoId:ref.id,lida:false,criadoEm:firebase.firestore.FieldValue.serverTimestamp()
+    });
+    emailjs.send(EJ_SERVICE,EJ_TMPL_INSC,{nome_aluno:nome,email_aluno:email,telefone:tel,forma_pagamento:pgtoLabel,fidelidade:pubFidelidade==='sim'?'Sim':'Não',valor:fmtBRL(valorFinal)}).catch(()=>{});
+    renderPagamento();
+  } catch(e){
+    console.error(e); toast('Erro ao enviar. Tente novamente.','err');
+    btn.textContent='Confirmar Inscrição'; btn.disabled=false;
+  }
+}
+
+function renderPagamento(){
+  const c=pubCurso||{}, fid=pubFidelidade==='sim';
+  const isCartao=pubPgto==='cartao1'||pubPgto==='cartao2';
+  const isPix3x=pubPgto==='pixparc';
+  const linkCartao=getLinkCartao();
+  const valorFinal=getValor();
+  const c2=pubCurso||{};
+  const pgtoLabel={avista:'PIX à vista',pixparc:`PIX parcelado (${c2.pixN||3}x)`,cartao1:`Cartão de crédito (até ${c2.cartao1N||3}x)`,cartao2:`Cartão de crédito (até ${c2.cartao2N||10}x)`}[pubPgto]||pubPgto;
+
+  document.getElementById('public-page').innerHTML=`
+  <div class="confirm-card fade-in">
+    <div style="font-size:54px;margin-bottom:14px">✅</div>
+    <h1>Inscrição Recebida!</h1>
+    <p style="color:var(--text2);font-size:15px;margin-bottom:6px">Olá, <strong>${pubNome}</strong>! Sua inscrição em <strong>${c.nome||'nosso curso'}</strong> foi registrada.</p>
+    ${fid?`<p style="font-size:13px;color:#e2d9ff;margin-top:4px">🤝 Plano Fidelidade — será verificado manualmente</p>`:''}
+    <p style="margin-top:14px;font-weight:600;color:var(--text)">Finalize o pagamento para confirmar sua vaga:</p>
+
+    ${!isCartao?`
+    <div class="pix-box">
+      <div style="font-weight:700;font-size:14px;margin-bottom:12px;display:flex;align-items:center;gap:8px"><span style="background:var(--green);color:#fff;font-size:10px;padding:2px 7px;border-radius:4px;font-weight:800">PIX</span> Pagamento via PIX</div>
+      <p style="font-size:12px;color:var(--text2);margin-bottom:6px">Chave PIX:</p>
+      <div class="pix-key-row">
+        <code>${c.chavePix||'Não configurada'}</code>
+        <button class="ico-btn" onclick="navigator.clipboard.writeText('${c.chavePix||''}').then(()=>toast('Copiado!'))">📋</button>
+      </div>
+      ${c.nomePix?`<p style="font-size:13px;color:var(--text2);margin-top:4px">Titular: <strong>${c.nomePix}</strong></p>`:''}
+      <p style="font-size:15px;font-weight:700;color:var(--green);margin-top:10px">Valor: ${fmtBRL(valorFinal)}</p>
+      ${isPix3x&&c.pixP1?`<div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(16,185,129,.2)"><p style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:6px">PARCELAS:</p>${c.pixP1?`<p style="font-size:13px;margin-bottom:3px">• 1ª: <strong>${fmtBRL(fid?(c.pixP1*(c.fPix3x/c.vPix3x)):c.pixP1)}</strong> — no ato</p>`:''}${c.pixP2?`<p style="font-size:13px;margin-bottom:3px">• 2ª: <strong>${fmtBRL(fid?(c.pixP2*(c.fPix3x/c.vPix3x)):c.pixP2)}</strong></p>`:''}${c.pixP3?`<p style="font-size:13px">• 3ª: <strong>${fmtBRL(fid?(c.pixP3*(c.fPix3x/c.vPix3x)):c.pixP3)}</strong></p>`:''}</div>`:''}
+      <p style="font-size:12px;color:var(--text2);font-style:italic;margin-top:10px">Após o pagamento, envie o comprovante ou use o botão abaixo.</p>
+    </div>`:`
+    <div class="cartao-box">
+      <div style="font-weight:700;font-size:14px;margin-bottom:12px">💳 ${pgtoLabel}</div>
+      <p style="font-size:15px;font-weight:700;color:var(--blue);margin-bottom:12px">Valor: ${fmtBRL(valorFinal)}</p>
+      ${linkCartao?`<a href="${linkCartao}" target="_blank" class="btn btn-primary" style="display:flex;text-decoration:none;margin-top:0">Clique aqui para pagar no cartão</a>`:'<p style="color:var(--text2);font-size:14px">Entre em contato para o pagamento.</p>'}
+    </div>`}
+
+    <div class="aviso-box">
+      <h3 style="font-size:15px;margin-bottom:12px;color:var(--accent)">📤 Após realizar o pagamento</h3>
+      <p style="font-size:14px;color:var(--text2);margin-bottom:14px">Clique no botão abaixo para nos avisar.</p>
+      <button onclick="irAvisar()" class="btn btn-green">✅ Avisar que paguei</button>
+      <p style="font-size:13px;color:var(--text2);margin-top:12px;text-align:center">Ou pelo Instagram: <a href="https://instagram.com/fccursos" target="_blank" style="color:var(--accent);font-weight:700">@fccursos</a></p>
+    </div>
+
+    ${(c.data||c.local)?`<div style="background:var(--bg3);border-radius:9px;padding:14px;display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--text2);text-align:left;margin-top:16px">${c.data?`<p>📅 <strong>${c.data}</strong></p>`:''} ${c.local?`<p>📍 <strong>${c.local}</strong></p>`:''}</div>`:''}
+    <div style="margin-top:16px;padding:14px;background:rgba(249,115,22,.06);border:1px solid rgba(249,115,22,.2);border-radius:10px;font-size:13px;color:var(--text2);text-align:center">
+      Dúvidas? <a href="https://instagram.com/fccursos" target="_blank" style="color:var(--accent);font-weight:700">@fccursos</a>
+    </div>
+  </div>`;
+  window.scrollTo(0,0);
+}
+
+function irAvisar(){
+  document.getElementById('public-page').innerHTML=`
+  <div class="confirm-card fade-in">
+    <div style="font-size:54px;margin-bottom:14px">💰</div>
+    <h1>Aviso de Pagamento</h1>
+    <p style="color:var(--text2);font-size:15px;margin-bottom:16px">Olá, <strong>${pubNome}</strong>! Informe os dados do pagamento.</p>
+    <div style="text-align:left;margin-bottom:16px">
+      <label style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;display:block;margin-bottom:6px">Observação (opcional)</label>
+      <textarea id="av-obs" rows="3" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:8px;font-size:14px;outline:none;resize:vertical" placeholder="Ex: Paguei a 1ª parcela hoje..."></textarea>
+    </div>
+    <button class="btn btn-primary" id="av-btn" onclick="enviarAviso()">📤 Enviar aviso</button>
+  </div>`;
+  window.scrollTo(0,0);
+}
+
+async function enviarAviso(){
+  const obs=document.getElementById('av-obs').value.trim();
+  const btn=document.getElementById('av-btn'); btn.textContent='Enviando...'; btn.disabled=true;
+  const c=pubCurso||{};
+  const pgtoLabel=document.querySelector('#public-page p strong')?.textContent||'';
+  try{
+    await db.collection('cursos').doc(pubCursoId).collection('inscricoes').doc(pubInscId).update({status:'aguard_confirm'});
+    await db.collection('cursos').doc(pubCursoId).collection('notificacoes').add({
+      tipo:'pagamento',nomeAluno:pubNome,detalhe:`${fmtBRL(getValor())}${obs?' · '+obs:''}`,
+      inscricaoId:pubInscId,lida:false,criadoEm:firebase.firestore.FieldValue.serverTimestamp()
+    });
+    emailjs.send(EJ_SERVICE,EJ_TMPL_PGTO,{nome_aluno:pubNome,forma_pagamento:'',valor:fmtBRL(getValor()),observacao:obs||'Nenhuma'}).catch(()=>{});
+    document.getElementById('public-page').innerHTML=`<div class="confirm-card fade-in"><div style="font-size:54px;margin-bottom:14px">🎉</div><h1>Aviso enviado!</h1><p style="color:var(--text2);margin-top:8px">Obrigado, <strong>${pubNome}</strong>! Confirmaremos sua vaga em breve.</p><div style="margin-top:20px;padding:14px;background:rgba(249,115,22,.06);border:1px solid rgba(249,115,22,.2);border-radius:10px;font-size:13px;color:var(--text2);text-align:center">Dúvidas? <a href="https://instagram.com/fccursos" target="_blank" style="color:var(--accent);font-weight:700">@fccursos</a></div></div>`;
+    window.scrollTo(0,0);
+  } catch(e){
+    toast('Erro ao enviar. Tente novamente.','err');
+    btn.textContent='📤 Enviar aviso'; btn.disabled=false;
+  }
+}
+</script>
 </body>
 </html>
