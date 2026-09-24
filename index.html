@@ -1071,6 +1071,17 @@ function renderConfig(){
           <div class="field full"><label>Nome do titular</label><input id="cf-pixnome" value="${c.nomePix||''}" placeholder="Felipe Cerqueira"/></div>
         </div>
       </div>
+      <!-- ── PLANO FIDELIDADE ── -->
+      <div class="config-sec">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:11px;border-bottom:1px solid var(--border)">
+          <h2 style="margin:0;padding:0;border:none">🤝 Plano Fidelidade</h2>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px">
+            <input type="checkbox" id="cf-fid-on" ${c.fidOn!==false?'checked':''} style="accent-color:var(--accent);width:16px;height:16px"> Habilitado
+          </label>
+        </div>
+        <p style="font-size:13px;color:var(--text2)">Quando desabilitado, a opção de fidelidade não aparece na página pública.</p>
+      </div>
+
       <!-- ── PIX À VISTA ── -->
       <div class="config-sec">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:11px;border-bottom:1px solid var(--border)">
@@ -1165,6 +1176,8 @@ async function saveConfig(){
     descricao:document.getElementById('cf-desc').value.trim(),
     chavePix:document.getElementById('cf-pix').value.trim(),
     nomePix:document.getElementById('cf-pixnome').value.trim(),
+    // Fidelidade
+    fidOn: document.getElementById('cf-fid-on').checked,
     // PIX à vista
     avistaOn: document.getElementById('cf-avista-on').checked,
     vAvista:parseFloat(document.getElementById('cf-v-avista').value)||0,
@@ -1257,10 +1270,10 @@ function renderPublicForm(){
           ${c.cartao1On?`<div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 14px"><span style="font-size:13px;font-weight:600">Cartão de crédito (até ${c.cartao1N||3}x)</span><span style="font-weight:700;font-family:'Syne',sans-serif;color:var(--teal);font-size:15px">${fmtBRL(c.vAvista)}</span></div>`:''}
           ${c.cartao2On!==false?`<div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 14px"><span style="font-size:13px;font-weight:600">Cartão de crédito (até ${c.cartao2N||10}x)</span><span style="font-weight:700;font-family:'Syne',sans-serif;color:var(--accent);font-size:15px">${fmtBRL(c.vCartao)}</span></div>`:''}
         </div>
-        <div style="padding:10px;background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.35);border-radius:8px;font-size:13px;color:#e2d9ff">
-          🤝 <strong>Plano Fidelidade (5% off):</strong>${c.avistaOn!==false?` PIX à vista ${fmtBRL(c.fAvista)}`:''}${c.pixParcOn?` · PIX ${c.pixN||3}x ${fmtBRL(c.fPix3x)}`:''}${c.cartao2On!==false?` · Cartão ${c.cartao2N||10}x ${fmtBRL(c.fCartao)}`:''}<br>
+        ${c.fidOn!==false?`<div style="padding:10px;background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.35);border-radius:8px;font-size:13px;color:#e2d9ff">
+          🤝 <strong>Plano Fidelidade (5% off):</strong>${c.avistaOn!==false?' PIX à vista '+fmtBRL(c.fAvista):''}${c.pixParcOn?' · PIX '+(c.pixN||3)+'x '+fmtBRL(c.fPix3x):''}${c.cartao2On!==false?' · Cartão '+(c.cartao2N||10)+'x '+fmtBRL(c.fCartao):''}<br>
           <em style="font-size:12px;font-weight:400;opacity:.85">Exclusivo para participantes dos cursos 2025/2026 do Prof. Felipe Cerqueira ou assinantes da OrtoFlix.</em>
-        </div>
+        </div>`:''}
       </div>
 
       <h2 style="margin-bottom:18px">Formulário de Inscrição</h2>
@@ -1271,13 +1284,13 @@ function renderPublicForm(){
         <div class="field"><label>Instagram</label><input id="pf-insta" placeholder="@seuusuario"/></div>
         <div class="field"><label>Você é:</label><select id="pf-perfil"><option value="formado">Fisioterapeuta formado</option><option value="estudante">Estudante</option></select></div>
         <div class="field"><label>Faculdade</label><input id="pf-fac" placeholder="Nome da faculdade"/></div>
-        <div class="field full"><label>Plano Fidelidade</label>
+        ${c.fidOn!==false?`<div class="field full"><label>Plano Fidelidade</label>
           <div class="radio-group" id="radio-fid">
             <label class="radio-opt selected" onclick="selectFid(this,'nao')"><input type="radio" name="fid" style="display:none" checked> Não se aplica</label>
             <label class="radio-opt" onclick="selectFid(this,'sim')"><input type="radio" name="fid" style="display:none"> 🤝 Sou assinante OrtoFlix ou fiz curso em 2025/2026</label>
           </div>
           <p id="fid-aviso" style="display:none;font-size:12px;color:#e2d9ff;margin-top:6px;padding:8px 12px;background:rgba(139,92,246,.15);border-radius:6px;border:1px solid rgba(139,92,246,.35)">⚠️ O desconto fidelidade será verificado manualmente. Caso não seja comprovado, a inscrição não será validada.</p>
-        </div>
+        </div>`:''}
         <div class="field full"><label>Forma de pagamento</label>
           <div class="radio-group" id="radio-pgto">
             ${c.avistaOn!==false?`<label class="radio-opt selected" onclick="selectPgtoPub(this,'avista')"><input type="radio" name="pgto" style="display:none" checked> PIX à vista</label>`:''}
