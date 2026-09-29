@@ -772,7 +772,7 @@ let inscFiltroStatus = 'todos';
 let inscBusca = '';
 
 function renderInscricoes(){
-  const publicLink = `${location.origin}/form.html?id=${cursoAtivoId}`;
+  const publicLink = `${location.origin}/#/inscricao/${cursoAtivoId}`;
   const filtradas = inscricoes.filter(i=>{
     const mb = !inscBusca||(i.nome||'').toLowerCase().includes(inscBusca.toLowerCase())||(i.email||'').toLowerCase().includes(inscBusca.toLowerCase())||(i.telefone||'').includes(inscBusca);
     const ms = inscFiltroStatus==='todos'||i.status===inscFiltroStatus;
@@ -1047,7 +1047,7 @@ async function deleteGasto(id){ if(!confirm('Remover?')) return; await db.collec
 // ══════════════════════════════════════════════════════
 function renderConfig(){
   const c=cursoAtivo||{};
-  const publicLink=`${location.origin}/form.html?id=${cursoAtivoId}`;
+  const publicLink=`${location.origin}/#/inscricao/${cursoAtivoId}`;
   document.getElementById('main-content').innerHTML=`
   <div class="page fade-in">
     <div class="page-hdr">
@@ -1471,9 +1471,7 @@ async function enviarAviso(inscId,nome,pgto,valor,cId){
 }
 
 // SW
-if('serviceWorker' in navigator){
-  window.addEventListener('load',()=>{ navigator.serviceWorker.register('/sw.js').catch(e=>console.log('SW:',e)); });
-}
+if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator.serviceWorker.register('/sw.js').catch(e=>console.log('SW:',e)); }); }
 </script>
 </body>
 </html>
