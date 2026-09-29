@@ -119,7 +119,7 @@ function getLinkCartao(){
   return '';
 }
 
-window.onload = function(){
+function init(){
   if(!pubCursoId){
     document.getElementById('loading').innerHTML='<div style="text-align:center;padding:40px"><div style="font-size:64px;margin-bottom:16px">🔗</div><h2 style="font-family:Syne,sans-serif;margin-bottom:8px">Link inválido</h2><p style="color:#94a3b8">Verifique o link com o organizador.</p></div>';
     return;
@@ -156,7 +156,10 @@ window.onload = function(){
     document.getElementById('public-page').style.display='flex';
     document.getElementById('public-page').innerHTML=`<div class="confirm-card"><h1 style="color:#ef4444">Erro de conexão</h1><p style="color:#94a3b8;margin-top:8px;font-family:monospace;font-size:12px">${e.message}</p><p style="color:#94a3b8;margin-top:12px">Dúvidas? <a href="https://instagram.com/fccursos" style="color:#f97316">@fccursos</a></p></div>`;
   });
-};
+}
+
+// Run immediately — don't wait for window.onload
+init();
 
 function renderForm(){
   const c=pubCurso||{};
