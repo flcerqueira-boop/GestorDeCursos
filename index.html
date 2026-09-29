@@ -1048,6 +1048,7 @@ async function deleteGasto(id){ if(!confirm('Remover?')) return; await db.collec
 function renderConfig(){
   const c=cursoAtivo||{};
   const publicLink=`${location.origin}/#/inscricao/${cursoAtivoId}`;
+  const publicLinkInst=`${location.origin}/inscricao.html?id=${cursoAtivoId}`;
   document.getElementById('main-content').innerHTML=`
   <div class="page fade-in">
     <div class="page-hdr">
@@ -1156,9 +1157,15 @@ function renderConfig(){
       <div class="config-sec"><h2>Link de Inscrição Pública</h2>
         <div class="link-card">
           <div class="link-info">
-            <span class="link-lbl">Compartilhe com seus alunos</span>
+            <span class="link-lbl">Link direto (WhatsApp, direct)</span>
             <code class="link-url">${publicLink}</code>
             <button class="btn btn-outline btn-sm" onclick="copyText('${publicLink}')">📋 Copiar</button>
+          </div>
+          <div class="link-card" style="margin-top:12px">
+            <div class="link-info">
+            <span class="link-lbl">Link para bio do Instagram</span>
+            <code class="link-url">${publicLinkInst}</code>
+            <button class="btn btn-outline btn-sm" onclick="copyText('${publicLinkInst}')">📋 Copiar</button>
           </div>
         </div>
       </div>

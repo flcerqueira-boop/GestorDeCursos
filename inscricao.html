@@ -61,7 +61,14 @@ select option{background:var(--bg3)}
 <div id="public-page" style="display:none"></div>
 
 <script>
-const firebaseConfig = {
+// Desregistra qualquer service worker que possa estar interferindo
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.getRegistrations().then(regs=>{
+    regs.forEach(r=>r.unregister());
+    if(regs.length > 0) location.reload();
+  });
+}
+</script>
   apiKey: "AIzaSyAq9ix8gVMn8lr7xtx49yUCDDI4fnpUuiI",
   authDomain: "cursomanager-53218.firebaseapp.com",
   projectId: "cursomanager-53218",
@@ -158,8 +165,27 @@ function init(){
   });
 }
 
-// Run immediately — don't wait for window.onload
-init();
+// Run after DOM and Firebase are ready
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+
+// Safety timeout — if still loading after 8s, show error
+setTimeout(()=>{
+  const loading = document.getElementById('loading');
+  if(loading && loading.style.display !== 'none'){
+    loading.innerHTML = `<div style="text-align:center;padding:40px;color:#e2e8f0">
+      <div style="font-size:48px;margin-bottom:16px">⚠️</div>
+      <h2 style="font-family:Syne,sans-serif;margin-bottom:8px">Erro de conexão</h2>
+      <p style="color:#94a3b8;margin-bottom:16px">Não foi possível conectar ao servidor.</p>
+      <p style="color:#94a3b8;font-size:13px">ID: ${pubCursoId}</p>
+      <button onclick="location.reload()" style="margin-top:16px;padding:10px 20px;background:#f97316;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer">Tentar novamente</button>
+      <p style="color:#94a3b8;margin-top:16px;font-size:13px">Dúvidas? <a href="https://instagram.com/fccursos" style="color:#f97316">@fccursos</a></p>
+    </div>`;
+  }
+}, 8000);
 
 function renderForm(){
   const c=pubCurso||{};
