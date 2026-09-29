@@ -132,6 +132,15 @@ window.onload = function(){
       return;
     }
     pubCurso = {id:snap.id,...snap.data()};
+    // Normalize undefined fields to safe defaults
+    if(pubCurso.avistaOn === undefined) pubCurso.avistaOn = true;
+    if(pubCurso.cartao2On === undefined) pubCurso.cartao2On = true;
+    if(pubCurso.fidOn === undefined) pubCurso.fidOn = true;
+    if(pubCurso.pixParcOn === undefined) pubCurso.pixParcOn = false;
+    if(pubCurso.cartao1On === undefined) pubCurso.cartao1On = false;
+    if(!pubCurso.pixN) pubCurso.pixN = 3;
+    if(!pubCurso.cartao1N) pubCurso.cartao1N = 3;
+    if(!pubCurso.cartao2N) pubCurso.cartao2N = 10;
     if(pubCurso.status==='encerrado'){
       document.getElementById('public-page').style.display='flex';
       document.getElementById('public-page').innerHTML='<div class="confirm-card"><div style="font-size:64px;margin-bottom:16px">🔒</div><h1>Inscrições encerradas</h1><p style="color:#94a3b8;margin-top:8px">Dúvidas? <a href="https://instagram.com/fccursos" style="color:#f97316">@fccursos</a></p></div>';

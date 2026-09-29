@@ -1226,6 +1226,14 @@ function showPublicPage(){
   db.collection('cursos').doc(pubCursoId).get().then(snap=>{
     if(!snap.exists){ showErroCurso(); return; }
     pubCurso = {id:snap.id,...snap.data()};
+    if(pubCurso.avistaOn === undefined) pubCurso.avistaOn = true;
+    if(pubCurso.cartao2On === undefined) pubCurso.cartao2On = true;
+    if(pubCurso.fidOn === undefined) pubCurso.fidOn = true;
+    if(pubCurso.pixParcOn === undefined) pubCurso.pixParcOn = false;
+    if(pubCurso.cartao1On === undefined) pubCurso.cartao1On = false;
+    if(!pubCurso.pixN) pubCurso.pixN = 3;
+    if(!pubCurso.cartao1N) pubCurso.cartao1N = 3;
+    if(!pubCurso.cartao2N) pubCurso.cartao2N = 10;
     if(pubCurso.status==='encerrado'){
       document.getElementById('public-page').innerHTML=`<div style="min-height:100vh;background:#0d1117;display:flex;align-items:center;justify-content:center;color:#e2e8f0;text-align:center;padding:24px"><div><div style="font-size:64px;margin-bottom:16px">🔒</div><h1 style="font-family:'Syne',sans-serif;font-size:24px;margin-bottom:8px">Inscrições encerradas</h1><p style="color:#94a3b8">As inscrições para este curso foram encerradas.</p><p style="margin-top:16px;font-size:13px;color:#94a3b8">Dúvidas? <a href="https://instagram.com/fccursos" style="color:#f97316">@fccursos</a></p></div></div>`;
       return;
