@@ -132,7 +132,6 @@ window.onload = function(){
       return;
     }
     pubCurso = {id:snap.id,...snap.data()};
-    // Normalize undefined fields to safe defaults
     if(pubCurso.avistaOn === undefined) pubCurso.avistaOn = true;
     if(pubCurso.cartao2On === undefined) pubCurso.cartao2On = true;
     if(pubCurso.fidOn === undefined) pubCurso.fidOn = true;
@@ -146,9 +145,16 @@ window.onload = function(){
       document.getElementById('public-page').innerHTML='<div class="confirm-card"><div style="font-size:64px;margin-bottom:16px">🔒</div><h1>Inscrições encerradas</h1><p style="color:#94a3b8;margin-top:8px">Dúvidas? <a href="https://instagram.com/fccursos" style="color:#f97316">@fccursos</a></p></div>';
       return;
     }
-    renderForm();
+    try {
+      renderForm();
+    } catch(err) {
+      document.getElementById('public-page').style.display='flex';
+      document.getElementById('public-page').innerHTML=`<div class="confirm-card"><h1 style="color:#ef4444">Erro ao carregar</h1><p style="color:#94a3b8;margin-top:8px;font-family:monospace;font-size:12px">${err.message}</p><p style="color:#94a3b8;margin-top:12px">Dúvidas? <a href="https://instagram.com/fccursos" style="color:#f97316">@fccursos</a></p></div>`;
+    }
   }).catch(e=>{
-    document.getElementById('loading').innerHTML='<p style="color:#ef4444">Erro ao carregar. Tente novamente.</p>';
+    document.getElementById('loading').style.display='none';
+    document.getElementById('public-page').style.display='flex';
+    document.getElementById('public-page').innerHTML=`<div class="confirm-card"><h1 style="color:#ef4444">Erro de conexão</h1><p style="color:#94a3b8;margin-top:8px;font-family:monospace;font-size:12px">${e.message}</p><p style="color:#94a3b8;margin-top:12px">Dúvidas? <a href="https://instagram.com/fccursos" style="color:#f97316">@fccursos</a></p></div>`;
   });
 };
 
