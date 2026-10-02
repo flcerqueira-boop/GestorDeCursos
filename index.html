@@ -664,6 +664,7 @@ function renderDashboard(){
   const totalG  = gastos.reduce((s,g)=>s+(g.valor||0),0);
   const receitaBruta = inscricoes.reduce((s,i)=>s+(i.valorFinal||0),0);
   const receitaLiq = inscricoes.reduce((s,i)=>{
+    if(i.status==='cortesia') return s; // cortesia não conta na receita líquida
     const isCartao=(i.formaPagamento||'').includes('Cartão');
     const isPix3x=(i.formaPagamento||'').toLowerCase().includes('pix parcelado')||(i.formaPagamento||'').includes('3x');
     if(isCartao) return s+(i.valorLiquido||0);
@@ -820,7 +821,10 @@ function renderInscricoes(){
         ${filtradas.length===0?`<tr><td colspan="11" class="empty-row">Nenhuma inscrição encontrada</td></tr>`:
           filtradas.map(i=>{
             const vTotal=i.valorFinal||0, vPago=i.valorPago||0, vLiq=i.valorLiquido!==undefined?i.valorLiquido:'';
-            const falta=Math.max(0,vTotal-vPago), isPix3x=(i.formaPagamento||'').includes('3x'), isCartao=(i.formaPagamento||'').includes('Cartão');
+            const isPix3x=(i.formaPagamento||'').toLowerCase().includes('pix parcelado')||(i.formaPagamento||'').includes('3x'), isCartao=(i.formaPagamento||'').includes('Cartão');
+            const isCortesia=i.status==='cortesia', isPagoCartao=i.status==='pago_cartao';
+            // Cortesia: sempre quitado. Cartão pago: quitado sempre. Outros: calcula normalmente.
+            const falta = isCortesia ? 0 : isPagoCartao ? 0 : Math.max(0,vTotal-vPago);
             return `<tr>
               <td><strong>${i.nome||''}</strong><br><span style="font-size:11px;color:var(--text2)">${i.faculdade||''}</span></td>
               <td style="font-size:12px">${i.telefone||''}<br><span style="color:var(--text2)">${i.email||''}</span></td>
@@ -860,7 +864,16 @@ async function updateStatus(id,status,sel){
   const insc=inscricoes.find(i=>i.id===id);
   const updates={status};
   const isPix3x=(insc?.formaPagamento||'').toLowerCase().includes('pix parcelado')||(insc?.formaPagamento||'').includes('3x');
-  if((status==='pago_pix'||status==='pago_cartao')&&!isPix3x) updates.valorPago=insc?.valorFinal||0;
+  if(status==='cortesia'){
+    // Cortesia: valor pago = valorFinal (para zerar o falta), líquido = 0
+    updates.valorPago = insc?.valorFinal||0;
+    updates.valorLiquido = 0;
+  } else if(status==='pago_cartao'){
+    // Cartão: valorPago = valorFinal para mostrar ✅ no falta
+    if(!isPix3x) updates.valorPago = insc?.valorFinal||0;
+  } else if(status==='pago_pix'&&!isPix3x){
+    updates.valorPago = insc?.valorFinal||0;
+  }
   await db.collection('cursos').doc(cursoAtivoId).collection('inscricoes').doc(id).update(updates);
   toast('Status atualizado');
 }
@@ -910,7 +923,8 @@ async function saveInsc(id){
     status:document.getElementById('if-status').value,
   };
   const isPix3x=data.formaPagamento.toLowerCase().includes('pix parcelado')||data.formaPagamento.includes('3x');
-  if((data.status==='pago_pix'||data.status==='pago_cartao')&&!isPix3x) data.valorPago=data.valorFinal;
+  if(data.status==='cortesia'){ data.valorPago=data.valorFinal; data.valorLiquido=0; }
+  else if((data.status==='pago_pix'||data.status==='pago_cartao')&&!isPix3x) data.valorPago=data.valorFinal;
   try{
     if(id) await db.collection('cursos').doc(cursoAtivoId).collection('inscricoes').doc(id).update(data);
     else await db.collection('cursos').doc(cursoAtivoId).collection('inscricoes').add({...data, criadoEm:firebase.firestore.FieldValue.serverTimestamp()});
