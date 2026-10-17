@@ -1027,7 +1027,7 @@ function renderGastos(){
       <div><h1>Gastos do Evento</h1><p>${gastos.length} lançamento(s)</p></div>
       <div class="hdr-actions"><span class="total-tag">Total: ${fmtBRL(total)}</span><button class="btn btn-primary" onclick="openAddGasto()">➕ Novo Gasto</button></div>
     </div>
-    ${porCat.length===0?'<div class="empty"><div class="ico">💸</div><p>Nenhum gasto registrado.</p></div>':`<div class="gastos-grid">${porCat.map(({cat,items})=>{const ct=items.reduce((s,g)=>s+(g.valor||0),0);return`<div class="gasto-cat"><div class="gasto-cat-hdr"><span style="font-weight:600;font-size:14px">${cat}</span><span style="font-weight:700;color:var(--accent);font-family:'Syne',sans-serif">${fmtBRL(ct)}</span></div>${items.map(g=>`<div class="gasto-item"><span>${g.descricao}</span><div style="display:flex;align-items:center;gap:8px"><span style="font-weight:700;font-family:'Syne',sans-serif;font-size:13px">${fmtBRL(g.valor)}</span><button class="ico-btn" onclick="deleteGasto('${g.id}')">🗑️</button></div></div>`).join('')}</div>`;}).join('')}</div>`}
+    ${porCat.length===0?'<div class="empty"><div class="ico">💸</div><p>Nenhum gasto registrado.</p></div>':`<div class="gastos-grid">${porCat.map(({cat,items})=>{const ct=items.reduce((s,g)=>s+(g.valor||0),0);return`<div class="gasto-cat"><div class="gasto-cat-hdr"><span style="font-weight:600;font-size:14px">${cat}</span><span style="font-weight:700;color:var(--accent);font-family:'Syne',sans-serif">${fmtBRL(ct)}</span></div>${items.map(g=>`<div class="gasto-item"><span>${g.descricao}</span><div style="display:flex;align-items:center;gap:8px"><span style="font-weight:700;font-family:'Syne',sans-serif;font-size:13px">${fmtBRL(g.valor)}</span><button class="ico-btn edit" onclick="openEditGasto('${g.id}')" title="Editar">✏️</button><button class="ico-btn" onclick="deleteGasto('${g.id}')" title="Remover">🗑️</button></div></div>`).join('')}</div>`;}).join('')}</div>`}
   </div>`;
 }
 function openAddGasto(){
@@ -1055,6 +1055,40 @@ async function saveGasto(){
   closeModal();
 }
 async function deleteGasto(id){ if(!confirm('Remover?')) return; await db.collection('cursos').doc(cursoAtivoId).collection('gastos').doc(id).delete(); reloadGastos(renderGastos); toast('Removido'); }
+
+function openEditGasto(id){
+  const g = gastos.find(g=>g.id===id);
+  if(!g) return;
+  document.body.insertAdjacentHTML('beforeend',`
+  <div class="overlay" onclick="closeIfOverlay(event)">
+    <div class="modal">
+      <div class="modal-header"><h2>Editar Gasto</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
+      <div class="form-grid">
+        <div class="field full"><label>Descrição *</label><input id="ge-desc" value="${g.descricao||''}"/></div>
+        <div class="field"><label>Categoria</label><select id="ge-cat">${CATS_GASTO.map(cat=>`<option ${g.categoria===cat?'selected':''}>${cat}</option>`).join('')}</select></div>
+        <div class="field"><label>Valor (R$) *</label><input id="ge-val" type="number" value="${g.valor||''}"/></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveEditGasto('${id}')">Salvar</button>
+      </div>
+    </div>
+  </div>`);
+}
+
+async function saveEditGasto(id){
+  const desc=document.getElementById('ge-desc').value.trim();
+  const val=parseFloat(document.getElementById('ge-val').value.replace(',','.'));
+  if(!desc||isNaN(val)){ toast('Preencha descrição e valor','err'); return; }
+  try{
+    await db.collection('cursos').doc(cursoAtivoId).collection('gastos').doc(id).update({
+      descricao:desc, categoria:document.getElementById('ge-cat').value, valor:val
+    });
+    toast('Gasto atualizado!');
+  } catch(e){ toast('Erro ao salvar','err'); }
+  closeModal();
+  reloadGastos(renderGastos);
+}
 
 // ══════════════════════════════════════════════════════
 // CONFIG
