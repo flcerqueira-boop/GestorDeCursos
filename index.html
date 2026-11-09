@@ -383,6 +383,7 @@ function toast(msg, type='ok'){
   document.body.appendChild(t);
   setTimeout(()=>t.remove(),3500);
 }
+function jurosTxt(v){ return v==='sem' ? ' sem juros' : v==='com' ? ' com juros' : ''; }
 function fmtBRL(v){ return 'R$ '+(parseFloat(v)||0).toFixed(2).replace('.',',') }
 function fmtDate(ts){ if(!ts) return '-'; const d=ts.toDate?ts.toDate():new Date(ts); return d.toLocaleDateString('pt-BR'); }
 function statusLabel(s){ return {pago_pix:'Pago PIX',pago_cartao:'Pago Cartão',aguard_confirm:'Aguard. Confirmação',pgto_parcial:'Pgto. Parcial',cortesia:'Cortesia',cancelado:'Cancelado'}[s]||s }
@@ -1174,6 +1175,7 @@ function renderConfig(){
         <p style="font-size:13px;color:var(--text2);margin-bottom:14px">Mesmo valor do PIX à vista, parcelado no cartão</p>
         <div class="form-grid">
           <div class="field"><label>Nº máximo de parcelas</label><input id="cf-cartao1-n" type="number" min="1" max="18" value="${c.cartao1N||3}" placeholder="3"/></div>
+          <div class="field"><label>Parcelamento</label><select id="cf-cartao1-juros"><option value="sem" ${c.cartao1Juros!=='com'?'selected':''}>Sem juros</option><option value="com" ${c.cartao1Juros==='com'?'selected':''}>Com juros</option></select></div>
           <div class="field"><label>Link de pagamento</label><input id="cf-cartao1-link" value="${c.cartao1Link||''}" placeholder="https://hotmart.com/..."/></div>
           <div class="field"><label>Link fidelidade</label><input id="cf-cartao1-linkf" value="${c.cartao1LinkF||''}" placeholder="https://hotmart.com/..."/></div>
         </div>
@@ -1190,6 +1192,7 @@ function renderConfig(){
         <p style="font-size:13px;color:var(--text2);margin-bottom:14px">Valor diferenciado, parcelado no cartão</p>
         <div class="form-grid">
           <div class="field"><label>Nº máximo de parcelas</label><input id="cf-cartao2-n" type="number" min="1" max="18" value="${c.cartao2N||10}" placeholder="10"/></div>
+          <div class="field"><label>Parcelamento</label><select id="cf-cartao2-juros"><option value="sem" ${c.cartao2Juros!=='com'?'selected':''}>Sem juros</option><option value="com" ${c.cartao2Juros==='com'?'selected':''}>Com juros</option></select></div>
           <div class="field"><label>Valor total normal (R$)</label><input id="cf-v-cartao" type="number" value="${c.vCartao||''}"/></div>
           <div class="field"><label>Valor total fidelidade (R$)</label><input id="cf-f-cartao" type="number" value="${c.fCartao||''}"/></div>
           <div class="field"><label>Link de pagamento</label><input id="cf-link-cartao" value="${c.linkCartao||''}" placeholder="https://hotmart.com/..."/></div>
@@ -1248,11 +1251,13 @@ async function saveConfig(){
     // Cartão opção 1
     cartao1On: document.getElementById('cf-cartao1-on').checked,
     cartao1N: parseInt(document.getElementById('cf-cartao1-n').value)||3,
+    cartao1Juros: document.getElementById('cf-cartao1-juros').value,
     cartao1Link: document.getElementById('cf-cartao1-link').value.trim(),
     cartao1LinkF: document.getElementById('cf-cartao1-linkf').value.trim(),
     // Cartão opção 2
     cartao2On: document.getElementById('cf-cartao2-on').checked,
     cartao2N: parseInt(document.getElementById('cf-cartao2-n').value)||10,
+    cartao2Juros: document.getElementById('cf-cartao2-juros').value,
     vCartao:parseFloat(document.getElementById('cf-v-cartao').value)||0,
     fCartao:parseFloat(document.getElementById('cf-f-cartao').value)||0,
     linkCartao:document.getElementById('cf-link-cartao').value.trim(),
@@ -1330,11 +1335,11 @@ function renderPublicForm(){
         <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px">
           ${c.avistaOn!==false?`<div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 14px"><span style="font-size:13px;font-weight:600">PIX à vista</span><span style="font-weight:700;font-family:'Syne',sans-serif;color:var(--green);font-size:15px">${fmtBRL(c.vAvista)}</span></div>`:''}
           ${c.pixParcOn?`<div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 14px"><span style="font-size:13px;font-weight:600">PIX parcelado (${c.pixN||3}x)</span><span style="font-weight:700;font-family:'Syne',sans-serif;color:var(--blue);font-size:15px">${fmtBRL(c.vPix3x)}</span></div>`:''}
-          ${c.cartao1On?`<div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 14px"><span style="font-size:13px;font-weight:600">Cartão de crédito (até ${c.cartao1N||3}x)</span><span style="font-weight:700;font-family:'Syne',sans-serif;color:var(--teal);font-size:15px">${fmtBRL(c.vAvista)}</span></div>`:''}
-          ${c.cartao2On!==false?`<div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 14px"><span style="font-size:13px;font-weight:600">Cartão de crédito (até ${c.cartao2N||10}x)</span><span style="font-weight:700;font-family:'Syne',sans-serif;color:var(--accent);font-size:15px">${fmtBRL(c.vCartao)}</span></div>`:''}
+          ${c.cartao1On?`<div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 14px"><span style="font-size:13px;font-weight:600">Cartão de crédito (até ${c.cartao1N||3}x${jurosTxt(c.cartao1Juros)})</span><span style="font-weight:700;font-family:'Syne',sans-serif;color:var(--teal);font-size:15px">${fmtBRL(c.vAvista)}</span></div>`:''}
+          ${c.cartao2On!==false?`<div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 14px"><span style="font-size:13px;font-weight:600">Cartão de crédito (até ${c.cartao2N||10}x${jurosTxt(c.cartao2Juros)})</span><span style="font-weight:700;font-family:'Syne',sans-serif;color:var(--accent);font-size:15px">${fmtBRL(c.vCartao)}</span></div>`:''}
         </div>
         ${c.fidOn!==false?`<div style="padding:10px;background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.35);border-radius:8px;font-size:13px;color:#e2d9ff">
-          🤝 <strong>Plano Fidelidade (5% off):</strong>${c.avistaOn!==false?' PIX à vista '+fmtBRL(c.fAvista):''}${c.pixParcOn?' · PIX '+(c.pixN||3)+'x '+fmtBRL(c.fPix3x):''}${c.cartao2On!==false?' · Cartão '+(c.cartao2N||10)+'x '+fmtBRL(c.fCartao):''}<br>
+          🤝 <strong>Plano Fidelidade (5% off):</strong>${c.avistaOn!==false?' PIX à vista '+fmtBRL(c.fAvista):''}${c.pixParcOn?' · PIX '+(c.pixN||3)+'x '+fmtBRL(c.fPix3x):''}${c.cartao2On!==false?' · Cartão '+(c.cartao2N||10)+'x'+jurosTxt(c.cartao2Juros)+' '+fmtBRL(c.fCartao):''}<br>
           <em style="font-size:12px;font-weight:400;opacity:.85">Exclusivo para participantes dos cursos 2025/2026 do Prof. Felipe Cerqueira ou assinantes da OrtoFlix.</em>
         </div>`:''}
       </div>
@@ -1358,8 +1363,8 @@ function renderPublicForm(){
           <div class="radio-group" id="radio-pgto">
             ${c.avistaOn!==false?`<label class="radio-opt selected" onclick="selectPgtoPub(this,'avista')"><input type="radio" name="pgto" style="display:none" checked> PIX à vista</label>`:''}
             ${c.pixParcOn?`<label class="radio-opt" onclick="selectPgtoPub(this,'pixparc')"><input type="radio" name="pgto" style="display:none"> PIX parcelado (${c.pixN||3}x)</label>`:''}
-            ${c.cartao1On?`<label class="radio-opt" onclick="selectPgtoPub(this,'cartao1')"><input type="radio" name="pgto" style="display:none"> Cartão de crédito (até ${c.cartao1N||3}x)</label>`:''}
-            ${c.cartao2On!==false?`<label class="radio-opt" onclick="selectPgtoPub(this,'cartao2')"><input type="radio" name="pgto" style="display:none"> Cartão de crédito (até ${c.cartao2N||10}x)</label>`:''}
+            ${c.cartao1On?`<label class="radio-opt" onclick="selectPgtoPub(this,'cartao1')"><input type="radio" name="pgto" style="display:none"> Cartão de crédito (até ${c.cartao1N||3}x${jurosTxt(c.cartao1Juros)})</label>`:''}
+            ${c.cartao2On!==false?`<label class="radio-opt" onclick="selectPgtoPub(this,'cartao2')"><input type="radio" name="pgto" style="display:none"> Cartão de crédito (até ${c.cartao2N||10}x${jurosTxt(c.cartao2Juros)})</label>`:''}
           </div>
           <div id="valor-preview" style="margin-top:10px;padding:10px 14px;background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.2);border-radius:8px;font-size:15px;font-weight:700;color:var(--accent)">💰 Valor: ${fmtBRL(getValor())}</div>
         </div>
@@ -1403,8 +1408,8 @@ async function submitInscricao(){
   const pgtoLabel={
     avista:'PIX à vista',
     pixparc:`PIX parcelado (${c2.pixN||3}x)`,
-    cartao1:`Cartão de crédito (até ${c2.cartao1N||3}x)`,
-    cartao2:`Cartão de crédito (até ${c2.cartao2N||10}x)`
+    cartao1:`Cartão de crédito (até ${c2.cartao1N||3}x${jurosTxt(c2.cartao1Juros)})`,
+    cartao2:`Cartão de crédito (até ${c2.cartao2N||10}x${jurosTxt(c2.cartao2Juros)})`
   }[pubPgto]||pubPgto;
   const valorFinal=getValor();
   try{
@@ -1446,7 +1451,7 @@ function renderPublicPagamento(){
       ${isPix3x&&c.pixP1?`<div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(16,185,129,.2)"><p style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:6px">PARCELAS:</p>${c.pixP1?`<p style="font-size:13px;margin-bottom:3px">• 1ª: <strong>${fmtBRL(fid?(c.pixP1*(c.fPix3x/c.vPix3x)):c.pixP1)}</strong> — no ato da inscrição</p>`:''} ${c.pixP2?`<p style="font-size:13px;margin-bottom:3px">• 2ª: <strong>${fmtBRL(fid?(c.pixP2*(c.fPix3x/c.vPix3x)):c.pixP2)}</strong></p>`:''} ${c.pixP3?`<p style="font-size:13px">• 3ª: <strong>${fmtBRL(fid?(c.pixP3*(c.fPix3x/c.vPix3x)):c.pixP3)}</strong></p>`:''}</div>`:''}
     </div>`:`
     <div class="cartao-box">
-      <div style="font-weight:700;font-size:14px;margin-bottom:12px">💳 Pagamento via Cartão — até 10x</div>
+      <div style="font-weight:700;font-size:14px;margin-bottom:12px">💳 Pagamento via Cartão — até ${pubPgto==='cartao1'?(c.cartao1N||3):(c.cartao2N||10)}x${jurosTxt(pubPgto==='cartao1'?c.cartao1Juros:c.cartao2Juros)}</div>
       <p style="font-size:15px;font-weight:700;color:var(--blue);margin-bottom:12px">Valor: ${fmtBRL(valorFinal)}</p>
       ${linkCartao?`<a href="${linkCartao}" target="_blank" class="btn btn-primary btn-full" style="margin-top:0">Clique aqui para pagar no cartão</a>`:'<p style="color:var(--text2);font-size:14px">Entre em contato para o pagamento.</p>'}
     </div>`}
