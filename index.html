@@ -383,6 +383,18 @@ function toast(msg, type='ok'){
   document.body.appendChild(t);
   setTimeout(()=>t.remove(),3500);
 }
+function parcCartaoHTML(){
+  const c=pubCurso||{}, fid=pubFidelidade==='sim';
+  const n = pubPgto==='cartao1'?'1':pubPgto==='cartao2'?'2':null;
+  if(!n || c['cartao'+n+'Juros']!=='com') return '';
+  const txt = (fid && c.fidOn!==false) ? (c['cartao'+n+'ParcF']||'') : (c['cartao'+n+'Parc']||'');
+  const linhas = txt.split('\n').map(s=>s.trim()).filter(Boolean);
+  if(!linhas.length) return '';
+  const esc = s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+  return `<div style="margin-top:10px;padding:12px 14px;background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.25);border-radius:8px;text-align:left"><div style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;margin-bottom:8px">Opções de parcelamento</div>${linhas.map(l=>`<p style="font-size:14px;margin-bottom:4px">• ${esc(l)}</p>`).join('')}</div>`;
+}
+function updateParcCartao(){ const el=document.getElementById('cartao-parc'); if(el) el.innerHTML=parcCartaoHTML(); }
+function toggleParcWrap(n){ document.getElementById('cf-cartao'+n+'-parc-wrap').style.display = document.getElementById('cf-cartao'+n+'-juros').value==='com' ? '' : 'none'; }
 function jurosTxt(v){ return v==='sem' ? ' sem juros' : v==='com' ? ' com juros' : ''; }
 function fmtBRL(v){ return 'R$ '+(parseFloat(v)||0).toFixed(2).replace('.',',') }
 function fmtDate(ts){ if(!ts) return '-'; const d=ts.toDate?ts.toDate():new Date(ts); return d.toLocaleDateString('pt-BR'); }
@@ -1175,7 +1187,8 @@ function renderConfig(){
         <p style="font-size:13px;color:var(--text2);margin-bottom:14px">Mesmo valor do PIX à vista, parcelado no cartão</p>
         <div class="form-grid">
           <div class="field"><label>Nº máximo de parcelas</label><input id="cf-cartao1-n" type="number" min="1" max="18" value="${c.cartao1N||3}" placeholder="3"/></div>
-          <div class="field"><label>Parcelamento</label><select id="cf-cartao1-juros"><option value="sem" ${c.cartao1Juros!=='com'?'selected':''}>Sem juros</option><option value="com" ${c.cartao1Juros==='com'?'selected':''}>Com juros</option></select></div>
+          <div class="field"><label>Parcelamento</label><select id="cf-cartao1-juros" onchange="toggleParcWrap(1)"><option value="sem" ${c.cartao1Juros!=='com'?'selected':''}>Sem juros</option><option value="com" ${c.cartao1Juros==='com'?'selected':''}>Com juros</option></select></div>
+          <div id="cf-cartao1-parc-wrap" style="grid-column:1/-1;${c.cartao1Juros==='com'?'':'display:none'}"><div class="field"><label>Opções de parcelamento — valor normal (uma por linha)</label><textarea id="cf-cartao1-parc" rows="4" placeholder="Ex: 1x de R$ 450,00">${c.cartao1Parc||''}</textarea></div><div class="field" style="margin-top:12px"><label>Opções de parcelamento — fidelidade (uma por linha)</label><textarea id="cf-cartao1-parcf" rows="4" placeholder="Usado só se o Plano Fidelidade estiver habilitado">${c.cartao1ParcF||''}</textarea></div></div>
           <div class="field"><label>Link de pagamento</label><input id="cf-cartao1-link" value="${c.cartao1Link||''}" placeholder="https://hotmart.com/..."/></div>
           <div class="field"><label>Link fidelidade</label><input id="cf-cartao1-linkf" value="${c.cartao1LinkF||''}" placeholder="https://hotmart.com/..."/></div>
         </div>
@@ -1192,7 +1205,8 @@ function renderConfig(){
         <p style="font-size:13px;color:var(--text2);margin-bottom:14px">Valor diferenciado, parcelado no cartão</p>
         <div class="form-grid">
           <div class="field"><label>Nº máximo de parcelas</label><input id="cf-cartao2-n" type="number" min="1" max="18" value="${c.cartao2N||10}" placeholder="10"/></div>
-          <div class="field"><label>Parcelamento</label><select id="cf-cartao2-juros"><option value="sem" ${c.cartao2Juros!=='com'?'selected':''}>Sem juros</option><option value="com" ${c.cartao2Juros==='com'?'selected':''}>Com juros</option></select></div>
+          <div class="field"><label>Parcelamento</label><select id="cf-cartao2-juros" onchange="toggleParcWrap(2)"><option value="sem" ${c.cartao2Juros!=='com'?'selected':''}>Sem juros</option><option value="com" ${c.cartao2Juros==='com'?'selected':''}>Com juros</option></select></div>
+          <div id="cf-cartao2-parc-wrap" style="grid-column:1/-1;${c.cartao2Juros==='com'?'':'display:none'}"><div class="field"><label>Opções de parcelamento — valor normal (uma por linha)</label><textarea id="cf-cartao2-parc" rows="4" placeholder="Ex: 1x de R$ 450,00">${c.cartao2Parc||''}</textarea></div><div class="field" style="margin-top:12px"><label>Opções de parcelamento — fidelidade (uma por linha)</label><textarea id="cf-cartao2-parcf" rows="4" placeholder="Usado só se o Plano Fidelidade estiver habilitado">${c.cartao2ParcF||''}</textarea></div></div>
           <div class="field"><label>Valor total normal (R$)</label><input id="cf-v-cartao" type="number" value="${c.vCartao||''}"/></div>
           <div class="field"><label>Valor total fidelidade (R$)</label><input id="cf-f-cartao" type="number" value="${c.fCartao||''}"/></div>
           <div class="field"><label>Link de pagamento</label><input id="cf-link-cartao" value="${c.linkCartao||''}" placeholder="https://hotmart.com/..."/></div>
@@ -1252,12 +1266,16 @@ async function saveConfig(){
     cartao1On: document.getElementById('cf-cartao1-on').checked,
     cartao1N: parseInt(document.getElementById('cf-cartao1-n').value)||3,
     cartao1Juros: document.getElementById('cf-cartao1-juros').value,
+    cartao1Parc: document.getElementById('cf-cartao1-parc').value.trim(),
+    cartao1ParcF: document.getElementById('cf-cartao1-parcf').value.trim(),
     cartao1Link: document.getElementById('cf-cartao1-link').value.trim(),
     cartao1LinkF: document.getElementById('cf-cartao1-linkf').value.trim(),
     // Cartão opção 2
     cartao2On: document.getElementById('cf-cartao2-on').checked,
     cartao2N: parseInt(document.getElementById('cf-cartao2-n').value)||10,
     cartao2Juros: document.getElementById('cf-cartao2-juros').value,
+    cartao2Parc: document.getElementById('cf-cartao2-parc').value.trim(),
+    cartao2ParcF: document.getElementById('cf-cartao2-parcf').value.trim(),
     vCartao:parseFloat(document.getElementById('cf-v-cartao').value)||0,
     fCartao:parseFloat(document.getElementById('cf-f-cartao').value)||0,
     linkCartao:document.getElementById('cf-link-cartao').value.trim(),
@@ -1367,6 +1385,7 @@ function renderPublicForm(){
             ${c.cartao2On!==false?`<label class="radio-opt" onclick="selectPgtoPub(this,'cartao2')"><input type="radio" name="pgto" style="display:none"> Cartão de crédito (até ${c.cartao2N||10}x${jurosTxt(c.cartao2Juros)})</label>`:''}
           </div>
           <div id="valor-preview" style="margin-top:10px;padding:10px 14px;background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.2);border-radius:8px;font-size:15px;font-weight:700;color:var(--accent)">💰 Valor: ${fmtBRL(getValor())}</div>
+          <div id="cartao-parc">${parcCartaoHTML()}</div>
         </div>
       </div>
 
@@ -1394,8 +1413,8 @@ function renderPublicForm(){
   </div>`;
 }
 
-function selectPgtoPub(el,val){ pubPgto=val; document.querySelectorAll('#radio-pgto .radio-opt').forEach(r=>r.classList.remove('selected')); el.classList.add('selected'); const bp=document.getElementById('bloco-pix3x'); if(bp) bp.style.display=val==='pixparc'?'block':'none'; document.getElementById('valor-preview').innerHTML=`💰 Valor: ${fmtBRL(getValor())}`; }
-function selectFid(el,val){ pubFidelidade=val; document.querySelectorAll('#radio-fid .radio-opt').forEach(r=>r.classList.remove('selected')); el.classList.add('selected'); const a=document.getElementById('fid-aviso'); if(a) a.style.display=val==='sim'?'block':'none'; document.getElementById('valor-preview').innerHTML=`💰 Valor: ${fmtBRL(getValor())}`; }
+function selectPgtoPub(el,val){ pubPgto=val; document.querySelectorAll('#radio-pgto .radio-opt').forEach(r=>r.classList.remove('selected')); el.classList.add('selected'); const bp=document.getElementById('bloco-pix3x'); if(bp) bp.style.display=val==='pixparc'?'block':'none'; document.getElementById('valor-preview').innerHTML=`💰 Valor: ${fmtBRL(getValor())}`; updateParcCartao(); }
+function selectFid(el,val){ pubFidelidade=val; document.querySelectorAll('#radio-fid .radio-opt').forEach(r=>r.classList.remove('selected')); el.classList.add('selected'); const a=document.getElementById('fid-aviso'); if(a) a.style.display=val==='sim'?'block':'none'; document.getElementById('valor-preview').innerHTML=`💰 Valor: ${fmtBRL(getValor())}`; updateParcCartao(); }
 
 async function submitInscricao(){
   const nome=document.getElementById('pf-nome').value.trim(), email=document.getElementById('pf-email').value.trim(), tel=document.getElementById('pf-tel').value.trim();
@@ -1453,6 +1472,7 @@ function renderPublicPagamento(){
     <div class="cartao-box">
       <div style="font-weight:700;font-size:14px;margin-bottom:12px">💳 Pagamento via Cartão — até ${pubPgto==='cartao1'?(c.cartao1N||3):(c.cartao2N||10)}x${jurosTxt(pubPgto==='cartao1'?c.cartao1Juros:c.cartao2Juros)}</div>
       <p style="font-size:15px;font-weight:700;color:var(--blue);margin-bottom:12px">Valor: ${fmtBRL(valorFinal)}</p>
+      ${parcCartaoHTML()}
       ${linkCartao?`<a href="${linkCartao}" target="_blank" class="btn btn-primary btn-full" style="margin-top:0">Clique aqui para pagar no cartão</a>`:'<p style="color:var(--text2);font-size:14px">Entre em contato para o pagamento.</p>'}
     </div>`}
     <div class="aviso-pgto-box">
